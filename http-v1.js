@@ -7,6 +7,7 @@ const morgan = require('morgan');
 const {make_async} = require('junk-drawer/express');
 
 const bodyParser = require('body-parser');
+const request = require('request-promise-native');
 
 const crypto = require('crypto');
 function sha256_from_string( str ){
@@ -26,14 +27,18 @@ function http_v1( log, coordinator, config ) {
 		const container = req.params["container"];
 		const object_name =  container + ":" + key;
 		const key_sha256 = sha256_from_string( object_name );
-		//TODO: Better default ndoes
+		//TODO: Better default nodes
 		const defaultNode =  Object.keys(nodes)[0];
 		const service = nodes[defaultNode];
-		//TODO: Revisit shortcut
-		log.info("Requested object", {key, key_sha256});
+		//TODO: Revisit design, should support getting a number of blocks too
 		const serviceURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
-		//TODO: Validate this object actually exists
-		resp.json({blocks: [{url: serviceURL}]});
+		log.info("Requested object storage", {container, key, key_sha256, serviceURL});
+		//TODO: Under many cases I probably don't care about blocking
+		const response = await request.get({
+			url: serviceURL
+		});
+		log.trace("result of remote get", {response});
+		resp.json(response);
 	});
 
 	app.a_post("/container/:container/object/*", async (req, resp) => {
@@ -47,8 +52,11 @@ function http_v1( log, coordinator, config ) {
 		//TODO: Revisit registration
 		const serviceURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
 
-		log.info("Placing object at ", {node: defaultNode, url: serviceURL});
-		resp.json({blocks: [{type: "put", url: serviceURL}]});
+		const result = await request.post({
+			url: serviceURL,
+			body: req.body.object
+		});
+		resp.json(result);
 	});
 
 	//Node controls

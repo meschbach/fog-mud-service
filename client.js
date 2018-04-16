@@ -9,30 +9,27 @@ class MudHTTPClient {
 
 	async store_value( container, key, object ) {
 		this.logger.trace("Storing simple value", {key, object});
-		const storage_instructions = await request.post({url: this.base + "/container/" + container + "/object/" + key, body: {}, json: true});
-		this.logger.trace("Storage instructions", storage_instructions);
-
-		const blocks = storage_instructions.blocks;
-		const results = await Promise.all(blocks.map(( {url}, index ) =>{
-			this.logger.trace("Block at location", {url, index});
-			return request.post({url: url, body: object });
-		}));
-		return results;
+		const storage_result = await request.post({
+			url: this.base + "/container/" + container + "/object/" + key,
+			headers: {
+				'X-Mud-Type' : 'Immediate'
+			},
+			body: { object: object},
+			json: true});
+		this.logger.trace("Storage result", storage_result);
+		return storage_result;
 	}
 
 	async get_value( container, key) {
-		this.logger.trace("Retrieving key", {key});
-		const retrieval_instructions = JSON.parse(await request.post({url: this.base + "/container/" + container + "/object/" + key}));
-		this.logger.trace("Retrieval instructions", {key, retrieval_instructions});
-
-		const blocks = retrieval_instructions.blocks;
-		if( blocks.length != 1 ){
-			throw new Error("TODO");
-		}
-		const block = blocks[0];
-		const value = await request.get({url: block.url });
-		this.logger.trace("Retrieved block", value);
-		return value;
+		this.logger.trace("Retrieving key", {container, key});
+		const result = JSON.parse(await request.get({
+			url: this.base + "/container/" + container + "/object/" + key,
+			headers: {
+				'X-Mud-Type' : 'Immediate'
+			}
+		}));
+		this.logger.trace("Retrieval instructions", {container, key, result});
+		return result;
 	}
 }
 
