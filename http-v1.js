@@ -21,9 +21,11 @@ function http_v1( log, coordinator, config ) {
 	const app = make_async(express());
 	app.use(morgan('short'));
 	app.use(bodyParser.json());
-	app.a_get("/object/*", async (req, resp) => {
+	app.a_get("/container/:container/object/*", async (req, resp) => {
 		const key = req.params[0];
-		const key_sha256 = sha256_from_string(key);
+		const container = req.params["container"];
+		const object_name =  container + ":" + key;
+		const key_sha256 = sha256_from_string( object_name );
 		//TODO: Better default ndoes
 		const defaultNode =  Object.keys(nodes)[0];
 		const service = nodes[defaultNode];
@@ -34,9 +36,11 @@ function http_v1( log, coordinator, config ) {
 		resp.json({blocks: [{url: serviceURL}]});
 	});
 
-	app.a_post("/object/*", async (req, resp) => {
+	app.a_post("/container/:container/object/*", async (req, resp) => {
 		const key = req.params[0];
-		const key_sha256 = sha256_from_string(key);
+		const container = req.params["container"];
+		const object_name =  container + ":" + key;
+		const key_sha256 = sha256_from_string( object_name );
 		//TODO: Better default ndoes
 		const defaultNode =  Object.keys(nodes)[0];
 		const service = nodes[defaultNode];
