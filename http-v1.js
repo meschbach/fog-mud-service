@@ -8,6 +8,7 @@ const {make_async} = require('junk-drawer/express');
 
 const bodyParser = require('body-parser');
 const request = require('request-promise-native');
+const requestStream = require('request');
 
 const crypto = require('crypto');
 function sha256_from_string( str ){
@@ -41,6 +42,21 @@ function http_v1( log, coordinator, config ) {
 		resp.json(response);
 	});
 
+	app.get("/container/:container/object-stream/*", async (req, resp) => {
+		const key = req.params[0];
+		const container = req.params["container"];
+		const object_name =  container + ":" + key;
+		const key_sha256 = sha256_from_string( object_name );
+		//TODO: Better default nodes
+		const defaultNode =  Object.keys(nodes)[0];
+		const service = nodes[defaultNode];
+		//TODO: Revisit design, should support getting a number of blocks too
+		const serviceURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
+		log.info("Requested object storage", {container, key, key_sha256, serviceURL});
+		//TODO: Under many cases I probably don't care about blocking
+		requestStream(serviceURL).pipe(resp);
+	});
+
 	app.a_post("/container/:container/object/*", async (req, resp) => {
 		const key = req.params[0];
 		const container = req.params["container"];
@@ -58,6 +74,23 @@ function http_v1( log, coordinator, config ) {
 		});
 		resp.json(result);
 	});
+
+
+	app.post("/container/:container/object-stream/*", async (req, resp) => {
+		const key = req.params[0];
+		const container = req.params["container"];
+		const object_name =  container + ":" + key;
+		const key_sha256 = sha256_from_string( object_name );
+		//TODO: Better default ndoes
+		const defaultNode =  Object.keys(nodes)[0];
+		const service = nodes[defaultNode];
+		//TODO: Revisit registration
+		const serviceURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
+		req.pipe(requestStream.post(serviceURL)).on('response', () => {
+			resp.end();
+		});
+	});
+
 
 	//Node controls
 	app.a_post("/nodes/:name", async (req, resp) => {

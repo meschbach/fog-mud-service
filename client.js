@@ -1,5 +1,6 @@
 
 const request = require('request-promise-native');
+const requestBase = require('request');
 
 class MudHTTPClient {
 	constructor( serviceURL, logger ){
@@ -20,27 +21,28 @@ class MudHTTPClient {
 		return storage_result;
 	}
 
+	stream_to( container, key ){
+		const url = this.base + "/container/" + container + "/object-stream/" + key;
+		this.logger.trace("Streaming from ", {container, key, url});
+		return requestBase.post( url );
+	}
+
 	async get_value( container, key) {
 		this.logger.trace("Retrieving key", {container, key});
 		const result = JSON.parse(await request.get({
-			url: this.base + "/container/" + container + "/object/" + key,
-			headers: {
-				'X-Mud-Type' : 'Immediate'
-			}
+			url: this.base + "/container/" + container + "/object/" + key
 		}));
 		this.logger.trace("Retrieval instructions", {container, key, result});
 		return result;
 	}
+
+	stream_from( container, key ){
+		const url = this.base + "/container/" + container + "/object-stream/" + key ;
+		this.logger.trace("Streaming from", {container, key, url});
+		return requestBase.get( url );
+	}
 }
 
-const bunyan = require('bunyan');
-const log = bunyan.createLogger({name: 'mud-client', level: process.env.LOG_LEVEL || 'info'});
-
-const {main} = require('junk-drawer');
-main( async (logger) => {
-	const base = "http://localhost:9977";
-	const client = new MudHTTPClient( base, logger );
-	await client.store_value( "test", "one-level-object", "example text of a value");
-	const result = await client.get_value( "test", "one-level-object");
-	logger.info("Received result", {result});
-}, log);
+module.exports = {
+	MudHTTPClient
+};
