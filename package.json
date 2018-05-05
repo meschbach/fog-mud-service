@@ -13,8 +13,10 @@
     "bunyan": "1.8.12",
     "express": "4.16.3",
     "junk-drawer": "git+https://github.com/meschbach/js-junk-drawer.git",
+    "level": "3.0.0",
     "morgan": "1.9.0",
     "request": "2.85.0",
-    "request-promise-native": "1.0.5"
+    "request-promise-native": "1.0.5",
+    "yargs": "11.0.0"
   }
 }
