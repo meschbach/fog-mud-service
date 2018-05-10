@@ -4,7 +4,7 @@
   "description": "Coordinator for the unstructored data storage",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha tests/system"
   },
   "author": "Mark Eschbach <meschbach@gmail.com>",
   "license": "MIT",
