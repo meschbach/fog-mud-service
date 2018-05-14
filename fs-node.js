@@ -62,17 +62,24 @@ class CoordinatorHTTPClient {
 	}
 }
 
-const {main} = require('junk-drawer');
-main( async (logger) => {
-	const port = 9978;
-	const httpComponent = http_v1(logger.child({proto: 'http/storage/v1', port}), null, {port, storage: 'fs-node-blocks'});
-	try {
-		const coordinator = "http://localhost:9977";
-		const name = "example";
-		const client = new CoordinatorHTTPClient(coordinator, logger);
-		await client.register_http(name, "localhost", port);
-	}catch(e){
-		logger.error("Failed to register with the coordinator, exiting", e);
-		httpComponent.end();
+if( require && require.main == module ){
+	const {main} = require('junk-drawer');
+	main( async (logger) => {
+		const port = 9978;
+		const httpComponent = http_v1(logger.child({proto: 'http/storage/v1', port}), null, {port, storage: 'fs-node-blocks'});
+		try {
+			const coordinator = "http://localhost:9977";
+			const name = "example";
+			const client = new CoordinatorHTTPClient(coordinator, logger);
+			await client.register_http(name, "localhost", port);
+		}catch(e){
+			logger.error("Failed to register with the coordinator, exiting", e);
+			httpComponent.end();
+		}
+	}, log);
+} else {
+	module.exports = {
+		fsNodeStorage: http_v1,
+		CoordinatorHTTPClient: CoordinatorHTTPClient
 	}
-}, log);
+}

@@ -9,6 +9,9 @@ const {promisify} = require("util")
 
 const fs_mkdtemp = promisify(fs.mkdtemp)
 
+const {http_v1} = require("./http-v1")
+const {fsNodeStorage, CoordinatorHTTPClient} = require("./fs-node");
+
 async function inPorcessService( logger ){
 	// Create a temporary directory
 	const tempPrefix = path.join( os.tmpdir(), "mud-");
@@ -17,17 +20,17 @@ async function inPorcessService( logger ){
 	logger.info("File System Configuration ", {root, fs})
 
 	// Create Metadata service
-	const metadatPort = 0;
-	const metaData = http_v1(logger.child({proto: 'http/v1', port: metadatPort}), null, {port: metadatPort});
+	const metaData = http_v1(logger.child({proto: 'http/v1', port: 0}), null, {port: 0});
+	const metadatPort = await metaData.port;
 
 	// Create a new block storage node
 	const blockStoragePort = 0;
-	const blockStroage = fsStorageNode({ client: "http://localhost:" + await metaData.port, root: fs, name: 'primary' });
+	const blockStorage = fsNodeStorage(logger.child({node: 'fs-storage'}), null, { client: "http://localhost:" + await metaData.port, root: fs, name: 'primary' });
 
 	return {
 		stop: () => {
-			blockStorage.stop();
-			metaData.stop();
+			blockStorage.end();
+			metaData.end();
 		}
 	}
 }

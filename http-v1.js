@@ -5,6 +5,7 @@
 const express = require('express');
 const morgan = require('morgan');
 const {make_async} = require('junk-drawer/express');
+const Future = require('junk-drawer/future');
 
 const bodyParser = require('body-parser');
 const request = require('request-promise-native');
@@ -118,9 +119,18 @@ function http_v1( log, coordinator, config ) {
 		resp.end()
 	});
 
-	app.listen( config.port, () => {
-		log.info("HTTP listener bound on ", config.port);
+	const result = {
+		port: new Future(),
+		end: function() {
+			server.close();
+		}
+	};
+	const server = app.listen( config.port, () => {
+		const address = server.address();
+		log.info("HTTP listener bound on ", address);
+		result.port.accept(address.port);
 	});
+	return result;
 }
 
 module.exports = {
