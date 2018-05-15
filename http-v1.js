@@ -119,16 +119,25 @@ function http_v1( log, coordinator, config ) {
 		resp.end()
 	});
 
+	const addressFuture = new Future();
 	const result = {
-		port: new Future(),
+		address: addressFuture.promised,
 		end: function() {
 			server.close();
 		}
 	};
-	const server = app.listen( config.port, () => {
+	const server = app.listen( config.port || 0, (error) => {
+		if( error ){
+			log.error("Failed to bind to port", config.port, error );
+			addressFuture.reject(error);
+			return;
+		}
 		const address = server.address();
+		if( address == undefined ){
+			throw new Error("Listening but not bound?");
+		}
 		log.info("HTTP listener bound on ", address);
-		result.port.accept(address.port);
+		addressFuture.accept(address);
 	});
 	return result;
 }

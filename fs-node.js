@@ -1,5 +1,4 @@
 const bunyan = require('bunyan');
-const log = bunyan.createLogger({name: 'mud-mem-node', level: process.env.LOG_LEVEL || 'info'});
 
 const express = require('express');
 const morgan = require('morgan');
@@ -14,22 +13,22 @@ function http_v1(logger, system, config) {
 	app.a_get("/block/:name", async (req, resp) => {
 		const target =  req.params["name"];
 		// const fileName = config.storage + "/" + target;
-		log.trace("Requested block ", {name: target});
+		logger.trace("Requested block ", {name: target});
 		resp.sendFile( target, {root: config.storage} );
 	});
 
 	app.a_post("/block/:name", async (req, resp) => {
 		const target =  req.params["name"];
 		const fileName = config.storage + "/" + target;
-		log.trace("Placing block at ", {name: target});
+		logger.trace("Placing block at ", {name: target});
 		const sink = fs.createWriteStream( fileName );
 		sink.on('error', (problem) => {
-			log.error("Failed to write target", {target, fileName }, problem);
+			logger.error("Failed to write target", {target, fileName }, problem);
 			resp.status(500);
 			resp.end();
 		});
 		req.on('end', () => {
-			log.trace("Completed piping data to file", {target, fileName });
+			logger.trace("Completed piping data to file", {target, fileName });
 			resp.status(200);
 			resp.end();
 		});
@@ -37,7 +36,7 @@ function http_v1(logger, system, config) {
 	});
 
 	const server = app.listen( config.port, () => {
-		log.info("HTTP listener bound on ", config.port);
+		logger.info("HTTP listener bound on ", config.port);
 	});
 
 	return {
@@ -64,6 +63,7 @@ class CoordinatorHTTPClient {
 
 if( require && require.main == module ){
 	const {main} = require('junk-drawer');
+	const log = bunyan.createLogger({name: 'mud-mem-node', level: process.env.LOG_LEVEL || 'info'});
 	main( async (logger) => {
 		const port = 9978;
 		const httpComponent = http_v1(logger.child({proto: 'http/storage/v1', port}), null, {port, storage: 'fs-node-blocks'});
