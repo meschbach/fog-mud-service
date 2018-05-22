@@ -10,7 +10,7 @@ const {promisify} = require("util");
 const fs_mkdtemp = promisify(fs.mkdtemp);
 const fs_mkdir = promisify(fs.mkdir);
 
-const {http_v1} = require("./http-v1");
+const {http_v1} = require("./metadata");
 const {MudHTTPClient} = require("./client");
 const {fsNodeStorage, CoordinatorHTTPClient} = require("./fs-node");
 
