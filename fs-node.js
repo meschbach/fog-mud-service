@@ -1,46 +1,52 @@
 const bunyan = require('bunyan');
-const log = bunyan.createLogger({name: 'mud-mem-node', level: process.env.LOG_LEVEL || 'info'});
 
 const express = require('express');
 const morgan = require('morgan');
 const {make_async} = require('junk-drawer/express');
+const Future = require('junk-drawer/future');
 
 const fs = require('fs');
+const assert = require('assert');
 
 function http_v1(logger, system, config) {
+	assert(config.storage, "Storage not defined.");
+
 	const blocks = {};
 	const app = make_async(express());
 	app.use(morgan('short'));
 	app.a_get("/block/:name", async (req, resp) => {
 		const target =  req.params["name"];
 		// const fileName = config.storage + "/" + target;
-		log.trace("Requested block ", {name: target});
+		logger.trace("Requested block ", {name: target});
 		resp.sendFile( target, {root: config.storage} );
 	});
 
 	app.a_post("/block/:name", async (req, resp) => {
 		const target =  req.params["name"];
 		const fileName = config.storage + "/" + target;
-		log.trace("Placing block at ", {name: target});
+		logger.trace("Placing block at ", {name: target});
 		const sink = fs.createWriteStream( fileName );
 		sink.on('error', (problem) => {
-			log.error("Failed to write target", {target, fileName }, problem);
+			logger.error("Failed to write target", {target, fileName }, problem);
 			resp.status(500);
 			resp.end();
 		});
 		req.on('end', () => {
-			log.trace("Completed piping data to file", {target, fileName });
+			logger.trace("Completed piping data to file", {target, fileName });
 			resp.status(200);
 			resp.end();
 		});
 		req.pipe(sink);
 	});
 
-	const server = app.listen( config.port, () => {
-		log.info("HTTP listener bound on ", config.port);
+	const addressFuture = new Future();
+	const server = app.listen( config.port, '127.0.0.1', () => {
+		logger.info("HTTP listener bound on ", server.address());
+		addressFuture.accept(server.address());
 	});
 
 	return {
+		address: addressFuture.promised,
 		end: function () {
 			server.close();
 		}
@@ -62,17 +68,25 @@ class CoordinatorHTTPClient {
 	}
 }
 
-const {main} = require('junk-drawer');
-main( async (logger) => {
-	const port = 9978;
-	const httpComponent = http_v1(logger.child({proto: 'http/storage/v1', port}), null, {port, storage: 'fs-node-blocks'});
-	try {
-		const coordinator = "http://localhost:9977";
-		const name = "example";
-		const client = new CoordinatorHTTPClient(coordinator, logger);
-		await client.register_http(name, "localhost", port);
-	}catch(e){
-		logger.error("Failed to register with the coordinator, exiting", e);
-		httpComponent.end();
+if( require && require.main == module ){
+	const {main} = require('junk-drawer');
+	const log = bunyan.createLogger({name: 'mud-mem-node', level: process.env.LOG_LEVEL || 'info'});
+	main( async (logger) => {
+		const port = 9978;
+		const httpComponent = http_v1(logger.child({proto: 'http/storage/v1', port}), null, {port, storage: 'fs-node-blocks'});
+		try {
+			const coordinator = "http://127.0.0.1:9977";
+			const name = "example";
+			const client = new CoordinatorHTTPClient(coordinator, logger);
+			await client.register_http(name, "127.0.0.1", port);
+		}catch(e){
+			logger.error("Failed to register with the coordinator, exiting", e);
+			httpComponent.end();
+		}
+	}, log);
+} else {
+	module.exports = {
+		fsNodeStorage: http_v1,
+		CoordinatorHTTPClient: CoordinatorHTTPClient
 	}
-}, log);
+}
