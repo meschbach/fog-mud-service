@@ -8,6 +8,7 @@ const path = require("path");
 const {promisify} = require("util");
 
 const fs_mkdtemp = promisify(fs.mkdtemp);
+const fs_mkdir = promisify(fs.mkdir);
 
 const {http_v1} = require("./http-v1");
 const {MudHTTPClient} = require("./client");
@@ -18,18 +19,24 @@ async function inPorcessService( logger ){
 	const tempPrefix = path.join( os.tmpdir(), "mud-");
 	const root = await fs_mkdtemp( tempPrefix );
 	const fs = path.join( root, "fs-storage" );
+	await fs_mkdir(fs);
 	logger.info("File System Configuration ", {root, fs});
 
 	// Create Metadata service
 	const metaData = http_v1(logger.child({app: 'metadata', port: 0}), null, {port: 0});
 
 	// Create a new block storage node
-	const blockStoragePort = 0;
-	const blockStorage = fsNodeStorage(logger.child({app: 'fs-storage'}), null, { client: "http://localhost:" + await metaData.port, root: fs, name: 'primary' });
+	const blockStorage = fsNodeStorage(logger.child({app: 'fs-storage'}), null, { client: "http://127.0.0.1:" + await metaData.port, storage: fs, name: 'primary' });
 
 	//create the client
 	const metadataAddress = await metaData.address;
-	const client = new MudHTTPClient("http://localhost:"+ metadataAddress.port, logger.child({proto: "httpv1.1/metadata"}));
+	const client = new MudHTTPClient("http://127.0.0.1:"+ metadataAddress.port, logger.child({proto: "httpv1.1/metadata"}));
+
+	//Register the block storage node with the client
+	const blockStorageAddress = await blockStorage.address;
+	logger.info("Block storage: ", blockStorageAddress);
+	const coordination = new CoordinatorHTTPClient("http://127.0.0.1:" + metadataAddress.port, logger.child({proto: "http/1.1/metadata"}));
+	await coordination.register_http("default", blockStorageAddress.address, blockStorageAddress.port );
 
 	return {
 		metadataAddress,

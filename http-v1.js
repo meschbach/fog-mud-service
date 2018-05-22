@@ -49,6 +49,7 @@ function http_v1( log, coordinator, config ) {
 		const object_name =  container + ":" + key;
 		const key_sha256 = sha256_from_string( object_name );
 		//TODO: Better default nodes
+		log.info("Nodes available for storage: ", nodes);
 		const defaultNode =  Object.keys(nodes)[0];
 		const service = nodes[defaultNode];
 		//TODO: Revisit design, should support getting a number of blocks too
@@ -63,10 +64,14 @@ function http_v1( log, coordinator, config ) {
 		const container = req.params["container"];
 		const object_name =  container + ":" + key;
 		const key_sha256 = sha256_from_string( object_name );
-		//TODO: Better default ndoes
+		//TODO: Better default nodes
+		if( Object.keys(nodes).length <= 0 ){
+			throw new Error("No nodes registered");
+		}
 		const defaultNode =  Object.keys(nodes)[0];
 		const service = nodes[defaultNode];
 		//TODO: Revisit registration
+		log.info("Using node for ingress storage", {service});
 		const serviceURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
 
 		const result = await request.post({
@@ -126,7 +131,7 @@ function http_v1( log, coordinator, config ) {
 			server.close();
 		}
 	};
-	const server = app.listen( config.port || 0, (error) => {
+	const server = app.listen( config.port || 0, '127.0.0.1', (error) => {
 		if( error ){
 			log.error("Failed to bind to port", config.port, error );
 			addressFuture.reject(error);

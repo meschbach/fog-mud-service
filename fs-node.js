@@ -3,10 +3,14 @@ const bunyan = require('bunyan');
 const express = require('express');
 const morgan = require('morgan');
 const {make_async} = require('junk-drawer/express');
+const Future = require('junk-drawer/future');
 
 const fs = require('fs');
+const assert = require('assert');
 
 function http_v1(logger, system, config) {
+	assert(config.storage, "Storage not defined.");
+
 	const blocks = {};
 	const app = make_async(express());
 	app.use(morgan('short'));
@@ -35,11 +39,14 @@ function http_v1(logger, system, config) {
 		req.pipe(sink);
 	});
 
-	const server = app.listen( config.port, () => {
-		logger.info("HTTP listener bound on ", config.port);
+	const addressFuture = new Future();
+	const server = app.listen( config.port, '127.0.0.1', () => {
+		logger.info("HTTP listener bound on ", server.address());
+		addressFuture.accept(server.address());
 	});
 
 	return {
+		address: addressFuture.promised,
 		end: function () {
 			server.close();
 		}
@@ -68,10 +75,10 @@ if( require && require.main == module ){
 		const port = 9978;
 		const httpComponent = http_v1(logger.child({proto: 'http/storage/v1', port}), null, {port, storage: 'fs-node-blocks'});
 		try {
-			const coordinator = "http://localhost:9977";
+			const coordinator = "http://127.0.0.1:9977";
 			const name = "example";
 			const client = new CoordinatorHTTPClient(coordinator, logger);
-			await client.register_http(name, "localhost", port);
+			await client.register_http(name, "127.0.0.1", port);
 		}catch(e){
 			logger.error("Failed to register with the coordinator, exiting", e);
 			httpComponent.end();
