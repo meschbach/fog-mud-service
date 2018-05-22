@@ -9,18 +9,18 @@
   "author": "Mark Eschbach <meschbach@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "body-parser": "1.18.2",
+    "body-parser": "1.18.3",
     "bunyan": "1.8.12",
     "express": "4.16.3",
     "junk-drawer": "git+https://github.com/meschbach/js-junk-drawer.git",
-    "level": "3.0.0",
+    "level": "3.0.1",
     "morgan": "1.9.0",
-    "request": "2.85.0",
+    "request": "2.87.0",
     "request-promise-native": "1.0.5",
     "yargs": "11.0.0"
   },
   "devDependencies": {
     "bunyan-format": "0.2.1",
-    "mocha": "5.1.1"
+    "mocha": "5.2.0"
   }
 }
