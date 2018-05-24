@@ -23,7 +23,7 @@ class MudHTTPClient {
 
 	stream_to( container, key ){
 		const url = this.base + "/container/" + container + "/object-stream/" + key;
-		this.logger.trace("Streaming from ", {container, key, url});
+		this.logger.trace("Streaming to ", {container, key, url});
 		return requestBase.post( url );
 	}
 
