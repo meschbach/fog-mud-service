@@ -85,4 +85,24 @@ describe( "In process harness", function() {
 			handler.stop();
 		}
 	});
+
+	it('can list based on prefixes', async function () {
+		const logger = createTestLogger("prefix-list", true);
+		const handler = await inPorcessService( logger );
+		try {
+			const container = "some-container";
+			const keyPrefix = "base/key/";
+			const values = ["miley", "mocha", "what", "like"];
+
+			const client = handler.client;
+			await Promise.all(values.map((value) => {
+				return client.store_value(container, keyPrefix + value, value);
+			}));
+
+			const keyResults = await client.list( container, keyPrefix);
+			assert.equal( keyResults.keys, values );
+		}finally{
+			handler.stop();
+		}
+	});
 });

@@ -41,6 +41,18 @@ class MudHTTPClient {
 		this.logger.trace("Streaming from", {container, key, url});
 		return requestBase.get( url );
 	}
+
+	async list( container, prefix ){
+		this.logger.trace("Listing", {container, prefix});
+		const prefixResults = await request({
+			url: this.base + "/container/" + container + "?list=" + prefix,
+			headers: {
+				'X-Mud-Type' : 'Immediate'
+			},
+			json: true});
+		this.logger.trace("Prefix results", prefixResults);
+		return prefixResults;
+	}
 }
 
 module.exports = {

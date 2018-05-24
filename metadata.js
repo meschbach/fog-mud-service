@@ -24,6 +24,14 @@ function http_v1( log, coordinator, config ) {
 	const app = make_async(express());
 	app.use(morgan('short'));
 	app.use(bodyParser.json());
+
+	app.a_get("/container/:container", async (req, resp) => {
+		const prefix = req.query["list"];
+		const container = req.params["container"];
+		log.trace( "Listing", {container, prefix} );
+		resp.json({keys: []});
+	});
+
 	app.a_get("/container/:container/object/*", async (req, resp) => {
 		const key = req.params[0];
 		const container = req.params["container"];
