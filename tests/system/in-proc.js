@@ -26,16 +26,7 @@ function digestStream( stream ) {
 }
 
 const Future = require('junk-drawer/future');
-function promiseEvent( from, name ) {
-	const sync = new Future();
-	from.on(name, function(what){
-		sync.accept(what);
-	});
-	from.on('error', function (why) {
-		sync.reject(why)
-	});
-	return sync.promised;
-}
+const {promiseEvent} = require('junk-drawer/future');
 
 describe( "In process harness", function() {
 	it("can start and stop", async function(){
