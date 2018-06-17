@@ -6,6 +6,7 @@ const express = require('express');
 const morgan = require('morgan');
 const {make_async} = require('junk-drawer/express');
 const Future = require('junk-drawer/future');
+const promiseEvent = Future.promiseEvent;
 
 const bodyParser = require('body-parser');
 const request = require('request-promise-native');
@@ -18,8 +19,50 @@ function sha256_from_string( str ){
 	return hash.digest("hex");
 }
 
+const levelup = require('levelup');
+const leveldown = require('leveldown');
+
+function v0_key( container, key ){
+	return container + ":" + key;
+}
+
+class LevelMetadataStore {
+	constructor( database, logger ){
+		this.database = database;
+		this.logger = logger;
+	}
+
+	stored( container, key ){
+		return this.database.put( v0_key(container, key), {v:0, key});
+	}
+
+	async block( container, key ){
+		const record = await this.database.get( v0_key(container, key) );
+		if( record.v != 0 ){
+			throw new Error("Unable to parse record version");
+		}
+		return record.block;
+	}
+
+	async list( container, prefix ){
+		const keyPrefix = v0_key( container, prefix );
+		const keys = [];
+		await promiseEvent( this.database.createKeyStream().on('data', ( rawKey ) => {
+			const fullKey = rawKey.toString('utf-8');
+			this.logger.info("Received data record: ", fullKey);
+			if( fullKey.startsWith( keyPrefix ) ){
+				const key = fullKey.substring(container.length + prefix.length + 1);
+				keys.push( key );
+			}
+		}), 'end');
+		return keys;
+	}
+}
+
 function http_v1( log, coordinator, config ) {
 	const nodes = {};
+
+	const storage = new LevelMetadataStore( coordinator.levelup, log.child({storage: 'leveldb'}) );
 
 	const app = make_async(express());
 	app.use(morgan('short'));
@@ -29,7 +72,9 @@ function http_v1( log, coordinator, config ) {
 		const prefix = req.query["list"];
 		const container = req.params["container"];
 		log.trace( "Listing", {container, prefix} );
-		resp.json({keys: []});
+
+		const subkeys = await storage.list( container, prefix );
+		resp.json({keys: subkeys});
 	});
 
 	app.a_get("/container/:container/object/*", async (req, resp) => {
@@ -81,6 +126,8 @@ function http_v1( log, coordinator, config ) {
 		//TODO: Revisit registration
 		log.info("Using node for ingress storage", {service});
 		const serviceURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
+
+		storage.stored( container, key );
 
 		const result = await request.post({
 			url: serviceURL,

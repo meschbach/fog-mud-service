@@ -2,6 +2,7 @@ const {inPorcessService} = require("../../in-proc");
 const bunyan = require("bunyan");
 const assert = require("assert");
 const bunyanFormat = require("bunyan-format");
+const {parallel} = require("junk-drawer/future");
 
 const fs = require('fs');
 
@@ -95,12 +96,16 @@ describe( "In process harness", function() {
 			const values = ["miley", "mocha", "what", "like"];
 
 			const client = handler.client;
-			await Promise.all(values.map((value) => {
+			await parallel(values.map((value) => {
 				return client.store_value(container, keyPrefix + value, value);
 			}));
 
 			const keyResults = await client.list( container, keyPrefix);
-			assert.equal( keyResults.keys, values );
+			const storedKeys = keyResults.keys;
+			assert.equal( storedKeys.length, values.length );
+			values.forEach( (key) => {
+				assert( storedKeys.indexOf( key ) != -1, "Value " + key + " was not found in "+ storedKeys );
+			});
 		}finally{
 			handler.stop();
 		}
