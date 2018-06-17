@@ -149,6 +149,9 @@ function http_v1( log, coordinator, config ) {
 		const serviceURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
 		req.pipe(requestStream.post(serviceURL)).on('response', () => {
 			resp.end();
+		}).on('end', () => {
+			log.trace("Completed streaming", {container, key});
+			storage.stored( container, key );
 		});
 	});
 

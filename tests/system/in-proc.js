@@ -93,16 +93,25 @@ describe( "In process harness", function() {
 		try {
 			const container = "some-container";
 			const keyPrefix = "base/key/";
-			const values = ["miley", "mocha", "what", "like"];
+			const storedValues = ["miley", "mocha", "what", "like"];
+			const streamedValues = ["tunak"];
 
 			const client = handler.client;
-			await parallel(values.map((value) => {
+			await parallel(storedValues.map((value) => {
 				return client.store_value(container, keyPrefix + value, value);
 			}));
 
+			await parallel( streamedValues.map( async (value) => {
+				const stream = await client.stream_to(container, keyPrefix + value );
+				const promise = promiseEvent(stream, 'end' );
+				stream.end( value );
+				await promise;
+			}));
+
+			const values = [].concat(storedValues,streamedValues);
 			const keyResults = await client.list( container, keyPrefix);
 			const storedKeys = keyResults.keys;
-			assert.equal( storedKeys.length, values.length );
+			assert.equal( storedKeys.length, values.length, "Expected " + values + " got " + storedKeys );
 			values.forEach( (key) => {
 				assert( storedKeys.indexOf( key ) != -1, "Value " + key + " was not found in "+ storedKeys );
 			});
