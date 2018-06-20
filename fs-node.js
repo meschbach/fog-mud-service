@@ -2,8 +2,8 @@ const bunyan = require('bunyan');
 
 const express = require('express');
 const morgan = require('morgan');
-const {make_async} = require('junk-drawer/express');
-const Future = require('junk-drawer/future');
+const {make_async} = require('junk-bucket/express');
+const Future = require('junk-bucket/future');
 
 const fs = require('fs');
 const assert = require('assert');
@@ -69,7 +69,7 @@ class CoordinatorHTTPClient {
 }
 
 if( require && require.main == module ){
-	const {main} = require('junk-drawer');
+	const {main} = require('junk-bucket');
 	const log = bunyan.createLogger({name: 'mud-mem-node', level: process.env.LOG_LEVEL || 'info'});
 	main( async (logger) => {
 		const port = 9978;

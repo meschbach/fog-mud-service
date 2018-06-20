@@ -4,8 +4,8 @@
 
 const express = require('express');
 const morgan = require('morgan');
-const {make_async} = require('junk-drawer/express');
-const Future = require('junk-drawer/future');
+const {make_async} = require('junk-bucket/express');
+const Future = require('junk-bucket/future');
 const promiseEvent = Future.promiseEvent;
 
 const bodyParser = require('body-parser');

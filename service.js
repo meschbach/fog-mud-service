@@ -1,4 +1,4 @@
-const {main} = require('junk-drawer');
+const {main} = require('junk-bucket');
 const bunyan = require('bunyan');
 const log = bunyan.createLogger({name: 'mud-coordinator', level: process.env.LOG_LEVEL || 'info'});
 

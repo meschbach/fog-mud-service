@@ -2,7 +2,7 @@ const {inPorcessService} = require("../../in-proc");
 const bunyan = require("bunyan");
 const assert = require("assert");
 const bunyanFormat = require("bunyan-format");
-const {parallel} = require("junk-drawer/future");
+const {parallel} = require("junk-bucket/future");
 
 const fs = require('fs');
 
@@ -25,8 +25,8 @@ function digestStream( stream ) {
 	return hash.digest('hex');
 }
 
-const Future = require('junk-drawer/future');
-const {promiseEvent} = require('junk-drawer/future');
+const Future = require('junk-bucket/future');
+const {promiseEvent} = require('junk-bucket/future');
 
 describe( "In process harness", function() {
 	it("can start and stop", async function(){

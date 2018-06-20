@@ -12,7 +12,7 @@
     "body-parser": "1.18.3",
     "bunyan": "1.8.12",
     "express": "4.16.3",
-    "junk-drawer": "git+https://github.com/meschbach/js-junk-drawer.git",
+    "junk-bucket": "1.0.1",
     "level": "3.0.1",
     "leveldown": "4.0.1",
     "levelup": "3.0.1",
