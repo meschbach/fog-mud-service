@@ -7,6 +7,7 @@ const os = require("os");
 const path = require("path");
 const {promisify} = require("util");
 
+//TODO: These are good candidates to move to the junk drawer
 const fs_mkdtemp = promisify(fs.mkdtemp);
 const fs_mkdir = promisify(fs.mkdir);
 
