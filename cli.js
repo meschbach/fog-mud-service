@@ -29,6 +29,9 @@ async function omniService( args ) {
 	const log = initLogLevel("fog-omni-service", args);
 	log.info("Starting the omni service");
 
+	// Extract the interface
+	const configMetadataAddress = args["metadata-address"];
+
 	// Extract the paths
 	const root = args["fs-root"];
 	const fsMetadataStorage = path.resolve( root, args["metadata-storage"] );
@@ -46,7 +49,7 @@ async function omniService( args ) {
 	const storage = {
 		levelup: levelup(leveldown( fsMetadataStorage ))
 	};
-	const metaData = await metadata.http_v1(metadataLogger, storage, {port: args["metadata-port"]});
+	const metaData = await metadata.http_v1(metadataLogger, storage, {address: configMetadataAddress, port: args["metadata-port"]});
 
 	//
 	const fsConfig = {
@@ -83,6 +86,7 @@ const args = yargs
 			.option( "fs-root", {default: process.cwd()} )
 			.option( "block-storage", {default: "fs-block-storage" } )
 			.option( "metadata-storage", {default: "metadata-storage" } )
+			.option( "metadata-address", {default: "0.0.0.0" } )
 			.option( "metadata-port", {default: 12345})
 	}, runCommand( omniService ) )
 	.argv;

@@ -189,7 +189,7 @@ function http_v1( log, coordinator, config ) {
 			server.close();
 		}
 	};
-	const server = app.listen( config.port || 0, '127.0.0.1', (error) => {
+	const server = app.listen( config.port || 0, config.address || '127.0.0.1', (error) => {
 		if( error ){
 			log.error("Failed to bind to port", config.port, error );
 			addressFuture.reject(error);
