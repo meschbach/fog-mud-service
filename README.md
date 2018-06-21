@@ -9,6 +9,13 @@ cached and where.
 
 ## Running the Service
 
+### In Docker
+
+```bash
+docker run -d -P meschbach/fog-mud
+```
+
+### From Service
 The easiest method to run the service on your current node from a checkout copy of the source is:
 ```bash
 node cli omni
