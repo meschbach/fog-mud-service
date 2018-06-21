@@ -12,10 +12,12 @@ cached and where.
 ### In Docker
 
 ```bash
-docker run -d -P meschbach/fog-mud
+docker run -d -p 12345:12345 meschbach/fog-mud
 ```
 
-### From Service
+The metadata service will be exposed on port `12345` allowing you to access the service via `http://localhost:12345`.
+
+### From Source
 The easiest method to run the service on your current node from a checkout copy of the source is:
 ```bash
 node cli omni
@@ -23,7 +25,7 @@ node cli omni
 
 You may use the `--help` option to provide additional details and options to configure for your particular use case.
 
-## Service Achitecture
+## Service Architecture
 
 There are three tiers to the application: the client interface service, the metadata service, and storage services.  All
 clients should be communicating with the client interface.  This will interpret client requests, deal with chunking,
