@@ -8,7 +8,7 @@ USER node
 RUN npm install --production --silent
 
 USER root
-RUN apk remove apline-sdk python && apk del /tmp/.build-deps
+RUN apk del /tmp/.build-deps
 
 USER node
 EXPOSE 12345
