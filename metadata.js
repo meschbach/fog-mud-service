@@ -19,9 +19,22 @@ function sha256_from_string( str ){
 	return hash.digest("hex");
 }
 
-const levelup = require('levelup');
-const leveldown = require('leveldown');
+/***********************************************************************************************************************
+ * Internal Dependencies
+ **********************************************************************************************************************/
+const {buildAuthorizationEngine} = require('./security');
 
+/***********************************************************************************************************************
+ * Implementation
+ **********************************************************************************************************************/
+
+/**
+ * Encodes a container & key in v0 format.
+ *
+ * @param container
+ * @param key
+ * @returns {string}
+ */
 function v0_key( container, key ){
 	return container + ":" + key;
 }
@@ -59,10 +72,11 @@ class LevelMetadataStore {
 	}
 }
 
-function http_v1( log, coordinator, config ) {
+async function http_v1( log, coordinator, config ) {
 	const nodes = {};
 
 	const storage = new LevelMetadataStore( coordinator.levelup, log.child({storage: 'leveldb'}) );
+	const securityLayer = await buildAuthorizationEngine( config, log.child({layer: "security"}) );
 
 	const app = make_async(express());
 	app.use(morgan('short'));
@@ -71,6 +85,12 @@ function http_v1( log, coordinator, config ) {
 	app.a_get("/container/:container", async (req, resp) => {
 		const prefix = req.query["list"];
 		const container = req.params["container"];
+
+		if( !(await securityLayer.authorized(req, "list")) ){
+			log.trace( "Security layer denied listing", {container, prefix} );
+			return resp.forbidden("Denied");
+		}
+
 		log.trace( "Listing", {container, prefix} );
 
 		const subkeys = await storage.list( container, prefix );
@@ -80,6 +100,13 @@ function http_v1( log, coordinator, config ) {
 	app.a_get("/container/:container/object/*", async (req, resp) => {
 		const key = req.params[0];
 		const container = req.params["container"];
+		// Authorize
+		if( !(await securityLayer.authorized(req, "get")) ){
+			log.trace( "Denying get", {container, prefix} );
+			return resp.forbidden("Denied");
+		}
+
+		//
 		const object_name =  container + ":" + key;
 		const key_sha256 = sha256_from_string( object_name );
 		//TODO: Better default nodes
@@ -96,9 +123,15 @@ function http_v1( log, coordinator, config ) {
 		resp.json(response);
 	});
 
-	app.get("/container/:container/object-stream/*", async (req, resp) => {
+	app.a_get("/container/:container/object-stream/*", async (req, resp) => {
 		const key = req.params[0];
 		const container = req.params["container"];
+		// Authorize
+		if( !(await securityLayer.authorized(req, "get")) ){
+			log.trace( "Denying get", {container, key} );
+			return resp.forbidden("Denied");
+		}
+		//
 		const object_name =  container + ":" + key;
 		const key_sha256 = sha256_from_string( object_name );
 		//TODO: Better default nodes
@@ -115,6 +148,12 @@ function http_v1( log, coordinator, config ) {
 	app.a_post("/container/:container/object/*", async (req, resp) => {
 		const key = req.params[0];
 		const container = req.params["container"];
+		// Authorize
+		if( !(await securityLayer.authorized(req, "put")) ){
+			log.trace( "Denying get", {container, key} );
+			return resp.forbidden("Denied");
+		}
+		//
 		const object_name =  container + ":" + key;
 		const key_sha256 = sha256_from_string( object_name );
 		//TODO: Better default nodes
@@ -140,6 +179,12 @@ function http_v1( log, coordinator, config ) {
 	app.post("/container/:container/object-stream/*", async (req, resp) => {
 		const key = req.params[0];
 		const container = req.params["container"];
+		// Authorize
+		if( !(await securityLayer.authorized(req, "put")) ){
+			log.trace( "Denying get", {container, key} );
+			return resp.forbidden("Denied");
+		}
+		//
 		const object_name =  container + ":" + key;
 		const key_sha256 = sha256_from_string( object_name );
 		//TODO: Better default ndoes

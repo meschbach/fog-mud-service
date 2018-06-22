@@ -31,7 +31,7 @@ async function inPorcessService( logger ){
 	const storage = {
 		levelup: levelup(leveldown(metadataDir))
 	};
-	const metaData = http_v1(logger.child({app: 'metadata', port: 0}), storage, {port: 0});
+	const metaData = await http_v1(logger.child({app: 'metadata', port: 0}), storage, {port: 0});
 
 	// Create a new block storage node
 	const blockStorage = fsNodeStorage(logger.child({app: 'fs-storage'}), null, { client: "http://127.0.0.1:" + await metaData.port, storage: fs, name: 'primary' });

@@ -49,7 +49,7 @@ async function omniService( args ) {
 	const storage = {
 		levelup: levelup(leveldown( fsMetadataStorage ))
 	};
-	const metaData = await metadata.http_v1(metadataLogger, storage, {address: configMetadataAddress, port: args["metadata-port"]});
+	const metaData = await metadata.http_v1(metadataLogger, storage, {address: configMetadataAddress, port: args["metadata-port"], jwt: args["jwt-material"] });
 
 	//
 	const fsConfig = {
@@ -83,6 +83,7 @@ const args = yargs
 	.option( "log-level", {alias: 'v', default: 'info'})
 	.command( "omni", "co-locates both an FS node and the metadata service", ( yargs ) => {
 		yargs
+			.option( "jwt-material", {description: "File path to private key for the JWT"})
 			.option( "fs-root", {default: process.cwd()} )
 			.option( "block-storage", {default: "fs-block-storage" } )
 			.option( "metadata-storage", {default: "metadata-storage" } )
