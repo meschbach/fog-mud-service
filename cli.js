@@ -20,9 +20,8 @@ const {MudHTTPClient} = require("./client");
 
 const {fsNodeStorage, CoordinatorHTTPClient} = require("./fs-node");
 
-const {promisify} = require("util");
 const fs = require("fs");
-const fs_mkdir = promisify(fs.mkdir);
+const {fs_mkdir} = require("./junk");
 
 //TODO: This and in-process look very similar.  These should probably be refactored to share code.
 async function omniService( args ) {

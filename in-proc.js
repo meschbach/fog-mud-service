@@ -2,14 +2,11 @@
  * An in-process version of the system.  Intended to provide a reasonable level of service for the system suitable for
  * testing components.  These tests aren't concerned with the security layer and will not configure them.
  */
-const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const {promisify} = require("util");
 
 //TODO: These are good candidates to move to the junk drawer
-const fs_mkdtemp = promisify(fs.mkdtemp);
-const fs_mkdir = promisify(fs.mkdir);
+const { fs_mkdtemp, fs_mkdir } = require("./junk");
 
 const {http_v1} = require("./metadata");
 const {MudHTTPClient} = require("./client");
