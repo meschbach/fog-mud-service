@@ -12,12 +12,7 @@ const bodyParser = require('body-parser');
 const request = require('request-promise-native');
 const requestStream = require('request');
 
-const crypto = require('crypto');
-function sha256_from_string( str ){
-	const hash = crypto.createHash('sha256');
-	hash.update(str);
-	return hash.digest("hex");
-}
+const {sha256_from_string} = require("./junk");
 
 /***********************************************************************************************************************
  * Internal Dependencies
