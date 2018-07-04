@@ -40,6 +40,7 @@ function inDomain( which ){ return gate( "domain", which); }
 function ofType( which ){ return gate( "type", which ); }
 function inContainer( named ) { return gate("container", named ); }
 function withKeyPrefix( prefix ) { return (event) => (event.key || "").startsWith(prefix) }
+function withKey( key ) { return gate("key", key) }
 
 class LevelStreamStorage {
 	constructor(events){
@@ -50,13 +51,23 @@ class LevelStreamStorage {
 		await this.events.store({v:0, domain: "mud", type: "object", op: "stored", who: user, container, key, node, block});
 	}
 
+	async stats( container, key ){
+		const allEvents = await this.events.all();
+		const interestedEvents = allEvents.filter( and(inDomain("mud"), ofType("object"), inContainer(container), withKey( key ) ));
+		const projection = interestedEvents.reduce( (state, event) => {
+			return event;
+		}, {});
+		console.log(projection);
+		return projection;
+	}
+
 	async list( container, prefix ){
 		const allEvents = await this.events.all();
 		const interestedEvents = allEvents.filter( and(inDomain("mud"), ofType("object"), inContainer(container), withKeyPrefix( prefix ) ));
 		const projection = interestedEvents.reduce( (state, event) => {
-			state[event.key] = event;
+			state.push( event.key );
 			return state;
-		}, {});
+		}, []);
 		return projection;
 	}
 }
@@ -90,13 +101,16 @@ describe( "Given a level database", function(){
 		});
 
 		it("can recall the node and block", async function() {
-			const list = await this.storage.list( this.container, this.key );
-			const result = list[this.key];
-			assert.equal(result.who, this.user_id);
-			assert.equal(result.node, this.node);
-			assert.equal(result.block, this.block);
+			const stat = await this.storage.stats( this.container, this.key );
+			console.log(stat);
+			assert.equal(stat.who, this.user_id);
+			assert.equal(stat.node, this.node);
+			assert.equal(stat.block, this.block);
 		});
 
-		it("can list the key in the container");
+		it("can list the key in the container", async function() {
+			const list = await this.storage.list( this.container, "" );
+			assert( list.includes(this.key) );
+		});
 	})
 });
