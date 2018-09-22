@@ -42,6 +42,13 @@ function inContainer( named ) { return gate("container", named ); }
 function withKeyPrefix( prefix ) { return (event) => (event.key || "").startsWith(prefix) }
 function withKey( key ) { return gate("key", key) }
 
+async function materialize( events, filter, reducer, initState ){
+	const rawEvents = await events.all();
+	const desiredEvents = rawEvents.filter( filter );
+	const state = desiredEvents.reduce( reducer, initState );
+	return state;
+}
+
 class LevelStreamStorage {
 	constructor(events){
 		this.events = events;
@@ -52,12 +59,11 @@ class LevelStreamStorage {
 	}
 
 	async stats( container, key ){
-		const allEvents = await this.events.all();
-		const interestedEvents = allEvents.filter( and(inDomain("mud"), ofType("object"), inContainer(container), withKey( key ) ));
-		const projection = interestedEvents.reduce( (state, event) => {
-			return event;
-		}, {});
-		console.log(projection);
+		const projection = await materialize(
+			this.events,
+			and(inDomain("mud"), ofType("object"), inContainer(container), withKey( key ) ),
+			(state, event) => { return event; }, {}
+			);
 		return projection;
 	}
 
@@ -102,7 +108,6 @@ describe( "Given a level database", function(){
 
 		it("can recall the node and block", async function() {
 			const stat = await this.storage.stats( this.container, this.key );
-			console.log(stat);
 			assert.equal(stat.who, this.user_id);
 			assert.equal(stat.node, this.node);
 			assert.equal(stat.block, this.block);
