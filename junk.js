@@ -18,37 +18,7 @@ function sha256_from_string( str ){
  * File System Promise adapters
  **********************************************************************************************************************/
 const {parallel, promiseEvent} = require("junk-bucket/future");
-
-const fs = require("fs");
-const path = require("path");
-const {promisify} = require("util");
-
-const fs_mkdtemp = promisify(fs.mkdtemp);
-const fs_mkdir = promisify(fs.mkdir);
-const fs_rmdir = promisify(fs.rmdir);
-const fs_readdir = promisify(fs.readdir);
-const fs_state = promisify(fs.stat);
-const fs_unlink = promisify(fs.unlink);
-
-async function fs_rm_recursively( target ){
-	const stats = await fs_state( target );
-	if( stats.isDirectory() ) {
-		const files = await fs_readdir( target );
-		await parallel(files.map( async subfile => {
-			const fullPath = path.join( target, subfile );
-			await fs_rm_recursively( fullPath );
-		}));
-		await fs_rmdir( target );
-	} else {
-		await fs_unlink( target );
-	}
-}
-
-async function makeTempDir( template, base = os.tmpdir() ) {
-	const tempPrefix = path.join( base, template);
-	const root = await fs_mkdtemp( tempPrefix );
-	return root;
-}
+const {mkdir, mkdtemp, makeTempDir, rm_recursively} = require("./junk/fs");
 
 /***********************************************************************************************************************
  * Level Database
@@ -71,7 +41,7 @@ async function level_mktemp() {
 			if( db.isOpen() ){
 				await db.close();
 			}
-			await fs_rm_recursively(dir);
+			await rm_recursively(dir);
 		},
 		db
 	};
@@ -90,8 +60,8 @@ async function level_forEachKey( db, onKey ){
 module.exports = {
 	sha256_from_string,
 
-	fs_mkdir,
-	fs_mkdtemp,
+	fs_mkdir: mkdir,
+	fs_mkdtemp: mkdtemp,
 
 	level_mktemp,
 	level_forEachKey
