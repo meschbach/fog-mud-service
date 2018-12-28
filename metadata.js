@@ -18,6 +18,7 @@ const {sha256_from_string} = require("./junk");
  * Internal Dependencies
  **********************************************************************************************************************/
 const {buildAuthorizationEngine} = require('./security');
+const {objectBackupHTTP} = require('./metadata/object-backup');
 
 /***********************************************************************************************************************
  * Implementation
@@ -32,6 +33,10 @@ const {buildAuthorizationEngine} = require('./security');
  */
 function v0_key( container, key ){
 	return container + ":" + key;
+}
+
+function v0_key_extractContainer( v0Key ){
+	return v0Key.split(":",1)[0];
 }
 
 class LevelMetadataStore {
@@ -64,6 +69,21 @@ class LevelMetadataStore {
 			}
 		}), 'end');
 		return keys;
+	}
+
+	async listContainers( ){
+		const containers = [];
+		await promiseEvent( this.database.createKeyStream().on('data', ( rawKey ) => {
+			const fullKey = rawKey.toString('utf-8');
+			this.logger.info("Received data record: ", fullKey);
+			if( fullKey.includes(":") ){
+				const container = v0_key_extractContainer(fullKey);
+				if( !containers.includes(container)) {
+					containers.push(container);
+				}
+			}
+		}), 'end');
+		return containers;
 	}
 }
 
@@ -221,6 +241,9 @@ async function http_v1( log, coordinator, config ) {
 		nodes[name] = {host, port};
 		resp.end()
 	});
+
+	//backup interface
+	app.use("/object-backup", objectBackupHTTP( log.child({subsystem: "backup"}), storage));
 
 	const addressFuture = new Future();
 	const result = {

@@ -53,6 +53,30 @@ class MudHTTPClient {
 		this.logger.trace("Prefix results", prefixResults);
 		return prefixResults;
 	}
+
+	async initiateObjectBackup(){
+		const url = this.base + "/object-backup";
+		this.logger.trace("Initiate Object Backup for all containers");
+		const config = {
+			url: url,
+			headers: { },
+			json: true
+		};
+
+		try {
+			const result = await request( config );
+			this.logger.trace("Done with object backup request", result);
+			return result;
+		}catch(e) {
+			if (e.statusCode == 404) {
+				throw new Error("Object backup not supported (404 for " + url + " )");
+			} else if( e.statusCode == 500 ){
+				throw new Error("Server error ( "+ e.statusCode + " for " + url + ": '" + e.statusText+ "' )");
+			} else {
+				throw e;
+			}
+		}
+	}
 }
 
 module.exports = {
