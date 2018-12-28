@@ -30,7 +30,7 @@ const {promiseEvent} = require('junk-bucket/future');
 
 describe( "In process harness", function() {
 	it("can start and stop", async function(){
-		const logger = createTestLogger("start-stop-test");
+		const logger = createTestLogger("start-stop-test", false);
 		const harness = await inPorcessService( logger );
 		const address = harness.metadataAddress;
 		try {
@@ -79,7 +79,7 @@ describe( "In process harness", function() {
 	});
 
 	it('can list based on prefixes', async function () {
-		const logger = createTestLogger("prefix-list", true);
+		const logger = createTestLogger("prefix-list", false);
 		const handler = await inPorcessService( logger );
 		try {
 			const container = "some-container";
