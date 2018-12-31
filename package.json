@@ -13,7 +13,7 @@
     "bunyan": "1.8.12",
     "express": "4.16.4",
     "jsonwebtoken": "8.4.0",
-    "junk-bucket": "1.0.6",
+    "junk-bucket": "1.0.7",
     "leveldown": "4.0.1",
     "levelup": "4.0.0",
     "morgan": "1.9.1",

@@ -88,7 +88,9 @@ describe( "Given a level database", function(){
 
 	afterEach(async function () {
 		try {
-			await this.level.close();
+			if( this.level ){
+				await this.level.close();
+			}
 		}catch(e){
 			console.error(e.bad);
 			throw e;

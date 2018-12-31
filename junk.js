@@ -18,7 +18,7 @@ function sha256_from_string( str ){
  * File System Promise adapters
  **********************************************************************************************************************/
 const {parallel, promiseEvent} = require("junk-bucket/future");
-const {mkdir, mkdtemp, makeTempDir, rm_recursively} = require("./junk/fs");
+const {makeTempDir, mkdir, mkdtemp, rmRecursively} = require("junk-bucket/fs");
 
 /***********************************************************************************************************************
  * Level Database
@@ -41,7 +41,7 @@ async function level_mktemp() {
 			if( db.isOpen() ){
 				await db.close();
 			}
-			await rm_recursively(dir);
+			await rmRecursively(dir);
 		},
 		db
 	};
