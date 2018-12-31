@@ -13,7 +13,13 @@ function http_v1(logger, system, config) {
 
 	const blocks = {};
 	const app = make_async(express());
-	app.use(morgan('short'));
+	app.use(morgan('short', {
+		stream: {
+			write: function (message) {
+				logger.info(message);
+			}
+		}
+	}));
 	app.a_get("/block/:name", async (req, resp) => {
 		const target =  req.params["name"];
 		// const fileName = config.storage + "/" + target;

@@ -94,7 +94,14 @@ async function http_v1( log, coordinator, config ) {
 	const securityLayer = await buildAuthorizationEngine( config, log.child({layer: "security"}) );
 
 	const app = make_async(express());
-	app.use(morgan('short'));
+	const morganLogger = log.child({component:"http/morgan"});
+	app.use(morgan('short', {
+		stream: {
+			write: function(message) {
+				morganLogger.info(message);
+			}
+		}
+	}));
 	app.use(bodyParser.json());
 
 	app.a_get("/container/:container", async (req, resp) => {

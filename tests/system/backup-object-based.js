@@ -9,7 +9,7 @@ const {inPorcessService} = require("../../in-proc");
 
 describe("For a object backup system", function(){
 	beforeEach(async function(){
-		const logger = createTestLogger("object-backup-initial", true);
+		const logger = createTestLogger("object-backup-initial", false);
 		this.harness = await inPorcessService( logger );
 	});
 	afterEach(async function(){
@@ -32,7 +32,6 @@ describe("For a object backup system", function(){
 			});
 
 			it("is given a list of objects to be backed up", function(){
-				console.log(this.result);
 				expect(this.result.objects[0].container).to.eq("backup-test");
 			});
 
