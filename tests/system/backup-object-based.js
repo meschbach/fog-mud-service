@@ -35,11 +35,43 @@ describe("For a object backup system", function(){
 				expect(this.result.objects[0].container).to.eq("backup-test");
 			});
 
-			describe("on the next run", function () {
-				it("receives a deleted list");
-				it("receives an updated list");
-				it("receives a list of new objects");
-			})
+			xdescribe("when nothing changes", function() {
+				describe("and the backup tries to continue", function(){
+					beforeEach(async function(){
+						const client = this.harness.client;
+						this.incrementalResponse = await client.incrementalBackupChanges(this.result.continuation);
+					});
+
+					it("has no modified objects", function() { expect(this.incrementalResponse.modified).to.be.empty; });
+					it("has no new objects", function(){ expect(this.incrementalResponse.created).to.be.empty; });
+					it("has no deleted objects", function(){ expect(this.incrementalResponse.destroyed).to.be.empty; });
+				});
+			});
+
+			xdescribe("when the object is deleted", function() {
+				describe("on the next run", function(){
+					it("reports the object deleted");
+					it("has no modified objects", function() { expect(this.incrementalResponse.modified).to.be.empty; });
+					it("has no new objects", function(){ expect(this.incrementalResponse.created).to.be.empty; });
+				});
+			});
+
+			xdescribe("when the object is replaced", function(){
+				describe("on the next run", function(){
+					it("reports the object has been modified");
+					it("has no new objects", function(){ expect(this.incrementalResponse.created).to.be.empty; });
+					it("has no deleted objects", function(){ expect(this.incrementalResponse.destroyed).to.be.empty; });
+				});
+			});
+
+
+			xdescribe("when a new object is added", function(){
+				describe("on the next run", function(){
+					it("has no modified objects", function() { expect(this.incrementalResponse.modified).to.be.empty; });
+					it("has no deleted objects", function(){ expect(this.incrementalResponse.destroyed).to.be.empty; });
+					it("reports the new object exists");
+				});
+			});
 		});
 	})
 });
