@@ -2,23 +2,10 @@
 const {expect} = require("chai");
 
 //Test support
-const bunyan = require("bunyan");
-const bunyanFormat = require("bunyan-format");
+const {createTestLogger} = require("./test-junk");
 
 //Module tests
 const {inPorcessService} = require("../../in-proc");
-
-function createTestLogger( name, debug = false ){
-	const level = debug ? "trace" : "error";
-	// Taken from: https://github.com/trentm/node-bunyan/issues/436
-	const logger = bunyan.createLogger({
-		name: name,
-		streams: [
-			{stream: bunyanFormat({outputMode: 'short'}), level: level}
-		]
-	});
-	return logger;
-}
 
 describe("For a object backup system", function(){
 	beforeEach(async function(){

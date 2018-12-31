@@ -1,22 +1,10 @@
 const {inPorcessService} = require("../../in-proc");
-const bunyan = require("bunyan");
 const assert = require("assert");
-const bunyanFormat = require("bunyan-format");
 const {parallel} = require("junk-bucket/future");
 
 const fs = require('fs');
 
-function createTestLogger( name, debug = false ){
-	const level = debug ? "trace" : "error";
-	// Taken from: https://github.com/trentm/node-bunyan/issues/436
-	const logger = bunyan.createLogger({
-		name: name,
-		streams: [
-			{stream: bunyanFormat({outputMode: 'short'}), level: level}
-			]
-	});
-	return logger;
-}
+const {createTestLogger} = require("./test-junk");
 
 const crypto = require('crypto');
 function digestStream( stream ) {
