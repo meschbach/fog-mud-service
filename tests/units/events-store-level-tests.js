@@ -1,14 +1,7 @@
-const {makeTempDir, rmRecursively} = require("junk-bucket/fs");
 const {promiseEvent} = require("junk-bucket/future");
 const {last} = require("junk-bucket/arrays");
 
-async function newTempDirectory( context, template){
-	const dir = await makeTempDir(template);
-	context.onCleanup(async function () {
-		await rmRecursively(dir);
-	});
-	return dir;
-}
+const {newTempDirectory} = require("../../junk/context");
 
 const levelup = require('levelup');
 const leveldown = require('leveldown');
