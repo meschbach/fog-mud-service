@@ -28,22 +28,33 @@ function v0_deserialize( dbRepresentation ) {
 class LevelUpEventStore {
 	constructor( db ){
 		this.db = db;
+		this._id = 0;
 	}
 
-	async _nextID(){
-		if( !this._term || !this._id ){
-			//New term
-			const lastTerm = await level_keyOptional(this.db,"v0/term");
-			this._term = (lastTerm || -1) + 1;
-			await this.db.put("v0/term", this._term);
-			//Always start from 0
-			this._id = 0;
+	_termID(){
+		if(this._term === undefined ){
+			this._term = this._getTerm();
 		}
-		const id = this._id++;
-		return {
-			term: this._term,
-			id
-		}
+		return this._term;
+	}
+
+	async _getTerm() {
+		const lastTerm = await level_keyOptional(this.db,"v0/term");
+		const term = (lastTerm || -1) + 1;
+		await this.db.put("v0/term", term);
+		return term;
+	}
+
+	_nextID(){
+		const id = this._id + 1;
+		this._id = id;
+
+		return this._termID().then( term => {
+			return {
+				term: this._term,
+				id
+			}
+		});
 	}
 
 	async countRecords(){
@@ -94,15 +105,19 @@ class LevelUpEventStore {
 
 			const constObject = v0_deserialize(data.value);
 
-			const promise = consumer(momento, constObject );
-			if( promise.then ){
-				promise.then( () => {
+			try {
+				const promise = consumer(momento, constObject);
+				if (promise && promise.then) {
+					promise.then(() => {
+						stream.resume();
+					}, (e) => {
+						stream.emit('error', e);
+					});
+				} else {
 					stream.resume();
-				}, (e) => {
-					stream.emit('error', e );
-				});
-			}else{
-				stream.resume();
+				}
+			}catch(e){
+				stream.emit('error',e);
 			}
 		});
 		await promiseEvent(stream, 'end');
@@ -117,5 +132,6 @@ async function newTemporaryLevelStore(context){
 }
 
 module.exports = {
-	newTemporaryLevelStore
+	newTemporaryLevelStore,
+	LevelUpEventStore
 }

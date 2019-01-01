@@ -2,9 +2,10 @@ const {newTemporaryLevelStore} = require("../../junk/event-store-level");
 
 const {expect} = require("chai");
 const {Context} = require("../../junk");
+const {parallel} = require("junk-bucket/future");
 const {createTestLogger} = require("../system/test-junk");
 
-describe("LevelEventStore", function () {
+describe("LevelUpEventStore", function () {
 	describe("Given a new LevelEventStore", function () {
 		beforeEach(async function () {
 			this.context = new Context("New LevelEventStore", createTestLogger("New LevelEventStore", true));
@@ -72,6 +73,43 @@ describe("LevelEventStore", function () {
 
 				it("replays all events from there forward", function(){
 					expect(this.events).to.deep.eq([2,3]);
+				});
+			});
+		});
+
+		describe("When multiple store operations are in flight", function(){
+			const events = [
+				{id: 0},
+				{id: 1},
+				{id: 2},
+				{id: 3},
+				{id: 4},
+				{id: 5},
+				{id: 6},
+				{id: 7},
+				{id: 8},
+				{id: 9},
+				{id: 10}
+			];
+
+			beforeEach(async function () {
+				await parallel(events.map(async (v) => {
+					await this.eventStore.publish(v);
+				}));
+			});
+
+			describe("And the events are replayed", function(){
+				beforeEach(async function () {
+					const replayed = [];
+					await this.eventStore.replay( (m,e) => replayed.push(e) );
+					this.replayed = replayed
+				});
+
+				it("provides all given events", function () {
+					function idComparator(l,r) {
+						return l.id - r.id;
+					}
+					expect(this.replayed.sort( idComparator)).to.deep.eq( events.sort(idComparator) );
 				});
 			});
 		});
