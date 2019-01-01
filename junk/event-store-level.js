@@ -56,7 +56,7 @@ class LevelUpEventStore {
 		return count;
 	}
 
-	async store( event ){
+	async publish( event ){
 		const dbRepresentation = JSON.stringify(event);
 		const momento = await this._nextID();
 		const key = momento_key(momento);

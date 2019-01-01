@@ -25,7 +25,7 @@ describe("LevelEventStore", function () {
 					testEvent: 1
 				};
 				this.exampleEvent = Object.assign({}, event);
-				this.momento = await this.eventStore.store(event);
+				this.momento = await this.eventStore.publish(event);
 				//TODO: Retitle test to make this a clear requirement
 				event.testEvent = 2; //Ensure we avoid storing mutable structures.
 			});
@@ -38,9 +38,9 @@ describe("LevelEventStore", function () {
 
 		describe("When multiple events are added", function(){
 			beforeEach(async function f() {
-				await this.eventStore.store(1);
-				this.secondEvent = await this.eventStore.store(2);
-				await this.eventStore.store(3);
+				await this.eventStore.publish(1);
+				this.secondEvent = await this.eventStore.publish(2);
+				await this.eventStore.publish(3);
 			});
 
 			describe("And is replayed", function (){
