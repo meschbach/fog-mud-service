@@ -19,6 +19,12 @@ async function level_keyOptional( db, key ){
 	}
 }
 
+function v0_deserialize( dbRepresentation ) {
+	const stringRepresentation = dbRepresentation.toString("utf-8");
+	const event = JSON.parse(stringRepresentation);
+	return Object.freeze(event);
+}
+
 class LevelUpEventStore {
 	constructor( db ){
 		this.db = db;
@@ -61,9 +67,7 @@ class LevelUpEventStore {
 	async byMomento( momento ){
 		const key = momento_key(momento);
 		const dbRepresentation = await this.db.get( key );
-		const stringRepresentation = dbRepresentation.toString("utf-8");
-		const event = JSON.parse(stringRepresentation);
-		return event;
+		return v0_deserialize(dbRepresentation);
 	}
 
 	async replay( consumer, fromMomento ){
@@ -88,9 +92,7 @@ class LevelUpEventStore {
 			const momento = Object.freeze({ term, id });
 			lastMomento = momento;
 
-			const stringRepresentation = data.value.toString("utf-8");
-			const event = JSON.parse(stringRepresentation);
-			const constObject = Object.freeze(event);
+			const constObject = v0_deserialize(data.value);
 
 			const promise = consumer(momento, constObject );
 			if( promise.then ){
