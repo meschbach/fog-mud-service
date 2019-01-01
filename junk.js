@@ -71,7 +71,7 @@ class Context {
 	}
 
 	onCleanup( f ){
-		this.toCleanup.push(f);
+		this.toCleanup.unshift(f);
 	}
 
 	async cleanup(){
