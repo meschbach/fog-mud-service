@@ -4,6 +4,10 @@ const {parallel} = require("junk-bucket/future");
 
 const fs = require('fs');
 
+/*
+ * Testing dependencies
+ */
+const {expect} = require('chai');
 const {createTestLogger} = require("./test-junk");
 
 const crypto = require('crypto');
@@ -66,18 +70,23 @@ describe( "In process harness", function() {
 		}
 	});
 
-	it('can list based on prefixes', async function () {
-		const logger = createTestLogger("prefix-list", false);
-		const handler = await inPorcessService( logger );
-		try {
-			const container = "some-container";
-			const keyPrefix = "base/key/";
-			const storedValues = ["miley", "mocha", "what", "like"];
-			const streamedValues = ["tunak"];
+	//TODO: The following test is a mess, should be cleaned up
+	describe("Given a number of objects stored in a specific bucket", function(){
+		const container = "some-container";
+		const keyPrefix = "base/key/";
 
-			const client = handler.client;
-			await parallel(storedValues.map((value) => {
-				return client.store_value(container, keyPrefix + value, value);
+		// These drive the key with `keyPrefix + value`
+		const storedValues = ["miley", "mocha", "what", "like"];
+		const streamedValues = ["tunak"];
+
+		beforeEach(async function () {
+			this.logger = createTestLogger("prefix-list", false);
+			this.handler = await inPorcessService( this.logger );
+
+
+			const client = this.handler.client;
+			await parallel(storedValues.map(async (value) => {
+				await client.store_value(container, keyPrefix + value, value);
 			}));
 
 			await parallel( streamedValues.map( async (value) => {
@@ -86,16 +95,23 @@ describe( "In process harness", function() {
 				stream.end( value );
 				await promise;
 			}));
+		});
+		afterEach(async function f() {
+			this.handler.stop();
+		});
 
-			const values = [].concat(storedValues,streamedValues);
-			const keyResults = await client.list( container, keyPrefix);
-			const storedKeys = keyResults.keys;
-			assert.equal( storedKeys.length, values.length, "Expected " + values + " got " + storedKeys );
-			values.forEach( (key) => {
-				assert( storedKeys.indexOf( key ) != -1, "Value " + key + " was not found in "+ storedKeys );
+		describe("When queried for a specific prefix within the bucket",function () {
+			beforeEach(async function f() {
+				const client = this.handler.client;
+				this.keyResults = await client.list( container, keyPrefix);
 			});
-		}finally{
-			handler.stop();
-		}
+
+			it("provides the full path to the elements within the bucket", function () {
+				const expectKeys = [].concat(
+					storedValues.map( v => keyPrefix + v),
+					streamedValues.map(v => keyPrefix + v));
+				expect(this.keyResults).to.deep.eq({keys: expectKeys});
+			});
+		})
 	});
 });

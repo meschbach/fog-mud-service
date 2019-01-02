@@ -15,6 +15,8 @@ const {fsNodeStorage, CoordinatorHTTPClient} = require("./fs-node");
 const {Context} = require("./junk");
 const {newTempDirectory} = require("./junk/context");
 const {openLevelDB} = require("./junk/leveldb");
+const {LevelUpEventStore} = require("./junk/event-store-level");
+const {EventMetadataStore} = require('./metadata/data-store');
 
 const {mkdir} = require('junk-bucket/fs');
 
@@ -28,19 +30,18 @@ async function inPorcessService( logger ){
 	const context = new Context("In-process Mud system", logger);
 	const root = await newTempDirectory(context, "mud-");
 	const metadataDir = await makeSubdirectory(root, "metadata");
-	const levelEventStore = await openLevelDB( context, metadataDir );
-
-	// Create a temporary directory
-	const fs = await makeSubdirectory(root, "fs-storage");
-	logger.info("File System Configuration ", {root, fs, metadataDir});
+	const metadataLevelDB = await openLevelDB( context, metadataDir );
+	const metadataLevelEventStore = new LevelUpEventStore(metadataLevelDB);
+	const metadataStorage = new EventMetadataStore(metadataLevelEventStore, logger.child({service:"metadata", component: "event storage"}));
 
 	// Create Metadata service
-	const storage = {
-		levelup: levelEventStore
+	const coordinator = {
+		storage: metadataStorage
 	};
-	const metaData = await http_v1(logger.child({app: 'metadata', port: 0}), storage, {port: 0});
+	const metaData = await http_v1(logger.child({app: 'metadata', port: 0}), coordinator, {port: 0});
 
 	// Create a new block storage node
+	const fs = await makeSubdirectory(root, "fs-storage");
 	const blockStorage = fsNodeStorage(logger.child({app: 'fs-storage'}), null, { client: "http://127.0.0.1:" + await metaData.port, storage: fs, name: 'primary' });
 
 	//create the client

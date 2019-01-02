@@ -23,74 +23,10 @@ const {objectBackupHTTP} = require('./metadata/object-backup');
 /***********************************************************************************************************************
  * Implementation
  **********************************************************************************************************************/
-
-/**
- * Encodes a container & key in v0 format.
- *
- * @param container
- * @param key
- * @returns {string}
- */
-function v0_key( container, key ){
-	return container + ":" + key;
-}
-
-function v0_key_extractContainer( v0Key ){
-	return v0Key.split(":",1)[0];
-}
-
-class LevelMetadataStore {
-	constructor( database, logger ){
-		this.database = database;
-		this.logger = logger;
-	}
-
-	stored( container, key ){
-		return this.database.put( v0_key(container, key), {v:0, key});
-	}
-
-	async block( container, key ){
-		const record = await this.database.get( v0_key(container, key) );
-		if( record.v != 0 ){
-			throw new Error("Unable to parse record version");
-		}
-		return record.block;
-	}
-
-	async list( container, prefix ){
-		const keyPrefix = v0_key( container, prefix );
-		const keys = [];
-		await promiseEvent( this.database.createKeyStream().on('data', ( rawKey ) => {
-			const fullKey = rawKey.toString('utf-8');
-			this.logger.info("Received data record: ", fullKey);
-			if( fullKey.startsWith( keyPrefix ) ){
-				const key = fullKey.substring(container.length + prefix.length + 1);
-				keys.push( key );
-			}
-		}), 'end');
-		return keys;
-	}
-
-	async listContainers( ){
-		const containers = [];
-		await promiseEvent( this.database.createKeyStream().on('data', ( rawKey ) => {
-			const fullKey = rawKey.toString('utf-8');
-			this.logger.info("Received data record: ", fullKey);
-			if( fullKey.includes(":") ){
-				const container = v0_key_extractContainer(fullKey);
-				if( !containers.includes(container)) {
-					containers.push(container);
-				}
-			}
-		}), 'end');
-		return containers;
-	}
-}
-
 async function http_v1( log, coordinator, config ) {
 	const nodes = {};
 
-	const storage = new LevelMetadataStore( coordinator.levelup, log.child({storage: 'leveldb'}) );
+	const storage = coordinator.storage;
 	const securityLayer = await buildAuthorizationEngine( config, log.child({layer: "security"}) );
 
 	const app = make_async(express());
@@ -188,7 +124,7 @@ async function http_v1( log, coordinator, config ) {
 		log.info("Using node for ingress storage", {service});
 		const serviceURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
 
-		storage.stored( container, key );
+		await storage.stored( container, key, key_sha256 );
 
 		const result = await request.post({
 			url: serviceURL,
@@ -215,10 +151,14 @@ async function http_v1( log, coordinator, config ) {
 		//TODO: Revisit registration
 		const serviceURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
 		req.pipe(requestStream.post(serviceURL)).on('response', () => {
-			resp.end();
+			storage.stored( container, key, key_sha256 ).then( () =>{
+				resp.end();
+			}, () => {
+				resp.statusCode = 502;
+				resp.end();
+			});
 		}).on('end', () => {
 			log.trace("Completed streaming", {container, key});
-			storage.stored( container, key );
 		});
 	});
 
