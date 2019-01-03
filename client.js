@@ -77,6 +77,30 @@ class MudHTTPClient {
 			}
 		}
 	}
+
+	async incrementalBackupChanges( momento ){
+		const url = this.base + "/object-backup/" + momento;
+		this.logger.trace("Incremental backup using momento", {momento});
+		const config = {
+			url: url,
+			headers: { },
+			json: true
+		};
+
+		try {
+			const result = await request( config );
+			this.logger.trace("Done with incremental backup", {momento, statusCode: result.statusCode});
+			return result;
+		}catch(e) {
+			if (e.statusCode == 404) {
+				throw new Error("Object backup not supported (404 for " + url + " )");
+			} else if( e.statusCode == 500 ){
+				throw new Error("Server error ( "+ e.statusCode + " for " + url + ": '" + e.statusText+ "' )");
+			} else {
+				throw e;
+			}
+		}
+	}
 }
 
 module.exports = {

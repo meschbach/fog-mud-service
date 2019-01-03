@@ -11,6 +11,14 @@ class EventMetadataStore {
 		this.logger = logger;
 	}
 
+	/**
+	 * Retrieves a revision of the current metadata
+	 * @returns {Promise<void>}
+	 */
+	async currentVersion(){
+		return await this.store.currentVersion();
+	}
+
 	async stored( container, key, block ){
 		const event = {
 			type: TYPE_STORED,
@@ -81,6 +89,24 @@ class EventMetadataStore {
 			}
 		} );
 		return containers;
+	}
+
+	async objectChangesBetween( fromEvent, toEvent ){
+		const changes = {
+			modified: [],
+			created: [],
+			destroyed: []
+		};
+
+		await this.store.replay( function (momento, event) {
+			//TODO: Interpret other types
+			if( event.type != TYPE_STORED) {
+				return;
+			}
+			//TODO: Be more intelligent about versions
+			assert(event.v == 0, "Version unsupported");
+		}, fromEvent, toEvent );
+		return changes;
 	}
 }
 

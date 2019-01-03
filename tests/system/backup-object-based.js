@@ -35,16 +35,16 @@ describe("For a object backup system", function(){
 				expect(this.result.objects[0].container).to.eq("backup-test");
 			});
 
-			xdescribe("when nothing changes", function() {
+			describe("when nothing changes", function() {
 				describe("and the backup tries to continue", function(){
 					beforeEach(async function(){
 						const client = this.harness.client;
 						this.incrementalResponse = await client.incrementalBackupChanges(this.result.continuation);
 					});
 
-					it("has no modified objects", function() { expect(this.incrementalResponse.modified).to.be.empty; });
-					it("has no new objects", function(){ expect(this.incrementalResponse.created).to.be.empty; });
-					it("has no deleted objects", function(){ expect(this.incrementalResponse.destroyed).to.be.empty; });
+					it("has no modified objects", function() { expect(this.incrementalResponse.changes.modified).to.be.empty; });
+					it("has no new objects", function(){ expect(this.incrementalResponse.changes.created).to.be.empty; });
+					it("has no deleted objects", function(){ expect(this.incrementalResponse.changes.destroyed).to.be.empty; });
 				});
 			});
 

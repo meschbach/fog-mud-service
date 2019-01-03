@@ -51,7 +51,17 @@ class LevelUpEventStore {
 
 		return this._termID().then( term => {
 			return {
-				term: this._term,
+				term: term,
+				id
+			}
+		});
+	}
+
+	currentVersion(){
+		const id = this._id;
+		return this._termID().then( term => {
+			return {
+				term: term,
 				id
 			}
 		});

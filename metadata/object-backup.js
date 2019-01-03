@@ -6,11 +6,12 @@ function objectBackupHTTP( logger, metadataStorage ) {
 	router.a_get("/", async function( req, resp ){
 		try {
 			//TODO: This is a dumb way to do it, requiring n^n traversals of the metadata
+			const revision = await metadataStorage.currentVersion();
 			const containers = await metadataStorage.listContainers();
 			logger.debug("Containers: ", containers);
 			let objects = [];
 			for( const container of containers ){
-				const keys = await metadataStorage.list(container, "");
+				const keys = await metadataStorage.list(container, "", revision);
 				logger.debug("Key listing", {container, keys});
 				const descriptors = keys.map( (key) => {
 					return {
@@ -21,13 +22,24 @@ function objectBackupHTTP( logger, metadataStorage ) {
 				objects = objects.concat(descriptors);
 			}
 			resp.json({
-				continuation: true,
+				continuation: JSON.stringify(revision),
 				objects
 			})
 		} catch(e) {
 			logger.error("Error in retrieving objects to backup", e);
 			throw e;
 		}
+	});
+
+	router.a_get("/:id", async function( req, resp ){
+		const fromVersion = JSON.parse(req.params["id"]);
+		const toRevision = await metadataStorage.currentVersion();
+
+		const changes = await metadataStorage.objectChangesBetween(fromVersion, toRevision);
+		resp.json({
+			continuation: JSON.stringify(toRevision),
+			changes
+		})
 	});
 	return router;
 }
