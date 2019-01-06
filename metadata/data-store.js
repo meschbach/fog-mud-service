@@ -1,6 +1,7 @@
 const assert = require('assert');
 
 const TYPE_STORED = "metadata.stored";
+const TYPE_DELETED = "metdata.deleted";
 
 class EventMetadataStore {
 	constructor( store, logger ){
@@ -98,15 +99,35 @@ class EventMetadataStore {
 			destroyed: []
 		};
 
+		let first = true; //TODO: build this into the store replay
 		await this.store.replay( function (momento, event) {
-			//TODO: Interpret other types
-			if( event.type != TYPE_STORED) {
+			if( first ){
+				first = false;
 				return;
 			}
-			//TODO: Be more intelligent about versions
-			assert(event.v == 0, "Version unsupported");
+			//TODO: Interpret other types
+			if( TYPE_STORED === event.type ) {
+				//TODO: Be more intelligent about versions
+				assert(event.v == 0, "Version unsupported");
+				//Add to the list
+				changes.created.push({container: event.container, key: event.key});
+			} else  if( TYPE_DELETED === event.type ){
+				//TODO: Be more intelligent about versions
+				assert(event.v == 0, "Version unsupported");
+				changes.destroyed.push({container: event.container, key: event.key});
+			}
 		}, fromEvent, toEvent );
 		return changes;
+	}
+
+	async deleteObject( container, key ) {
+		const event = {
+			type: TYPE_DELETED,
+			v: 0,
+			container,
+			key
+		};
+		return await this.store.publish(event);
 	}
 }
 

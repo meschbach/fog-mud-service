@@ -54,6 +54,22 @@ class MudHTTPClient {
 		return prefixResults;
 	}
 
+	async delete( container, key ){
+		this.logger.trace("Deleting", {container, key});
+		try {
+			const deleteResults = await request({
+				url: this.base + "/container/" + container + "/object/" + key,
+				headers: {},
+				json: true,
+				method: "DELETE"
+			});
+			this.logger.trace("Deleted", deleteResults);
+			return deleteResults;
+		}catch (e) {
+			throw new Error("Failed to delete '" + key + "' from container '" + container + "' because " + e.message );
+		}
+	}
+
 	async initiateObjectBackup(){
 		const url = this.base + "/object-backup";
 		this.logger.trace("Initiate Object Backup for all containers");

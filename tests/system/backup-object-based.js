@@ -17,22 +17,27 @@ describe("For a object backup system", function(){
 	});
 
 	describe("operating in batch mode", function(){
+		beforeEach( async function() {
+			const client = this.harness.client;
+			await client.store_value("backup-test", "test", "test-value");
+			await client.store_value("backup-test", "delete-key", "delete-value");
+		});
+
 		describe("on first backup", function(){
 			beforeEach( async function() {
 				const client = this.harness.client;
-				await client.store_value("backup-test", "test");
 				this.result = await client.initiateObjectBackup();
 			});
 
-			it("has a continuation token", function(){
-				expect(this.result.continuation,"continuation token").to.exist;
-			});
 			it("provides a set of objects", function(){
-				expect(this.result.objects).to.exist;
+				expect(this.result.objects.length).to.eq(2);
 			});
 
 			it("is given a list of objects to be backed up", function(){
-				expect(this.result.objects[0].container).to.eq("backup-test");
+				expect(this.result.objects).to.deep.eq([
+					{container:"backup-test", key: "test"},
+					{container:"backup-test", key: "delete-key"},
+				]);
 			});
 
 			describe("when nothing changes", function() {
@@ -48,11 +53,25 @@ describe("For a object backup system", function(){
 				});
 			});
 
-			xdescribe("when the object is deleted", function() {
+			describe("when the object is deleted", function() {
+				beforeEach(async function () {
+					const client = this.harness.client;
+					await client.delete("backup-test", "delete-key");
+				});
+
 				describe("on the next run", function(){
-					it("reports the object deleted");
-					it("has no modified objects", function() { expect(this.incrementalResponse.modified).to.be.empty; });
-					it("has no new objects", function(){ expect(this.incrementalResponse.created).to.be.empty; });
+					beforeEach(async function(){
+						const client = this.harness.client;
+						this.incrementalResponse = await client.incrementalBackupChanges(this.result.continuation);
+						this.changes = this.incrementalResponse.changes;
+					});
+
+					it("reports the object deleted", function(){
+						expect(this.changes.destroyed).to.deep.eq([{container: "backup-test", key: "delete-key"}]);
+					});
+
+					it("has no modified objects", function() { expect(this.changes.modified).to.deep.eq([]); });
+					it("has no new objects", function(){ expect(this.changes.created).to.deep.eq([]); });
 				});
 			});
 

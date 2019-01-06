@@ -23,7 +23,7 @@ const {objectBackupHTTP} = require('./metadata/object-backup');
 /***********************************************************************************************************************
  * Implementation
  **********************************************************************************************************************/
-async function http_v1( log, coordinator, config ) {
+async function http_v1( log, coordinator, config ) { //TODO: The client and system interfaces should be broken apart
 	const nodes = {};
 
 	const storage = coordinator.storage;
@@ -162,6 +162,18 @@ async function http_v1( log, coordinator, config ) {
 		});
 	});
 
+	app.a_delete("/container/:container/object/*", async function(req, resp) {
+		const key = req.params[0];
+		const container = req.params["container"];
+		// Authorize
+		if( !(await securityLayer.authorized(req, "delete")) ){
+			log.trace( "Denying delete", {container, key} );
+			return resp.forbidden("Denied");
+		}
+		// Verify we have the object
+		const result = await storage.deleteObject(container, key);
+		return resp.json({});
+	});
 
 	//Node controls
 	app.a_post("/nodes/:name", async (req, resp) => {
