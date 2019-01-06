@@ -1,7 +1,7 @@
 {
   "name": "fog-mud",
   "version": "1.2.0",
-  "description": "Coordinator for the unstructored data storage",
+  "description": "Coordinator for the unstructured data storage",
   "main": "index.js",
   "scripts": {
     "test": "mocha tests/units && mocha tests/system"
