@@ -21,6 +21,7 @@ describe("For a object backup system", function(){
 			const client = this.harness.client;
 			await client.store_value("backup-test", "test", "test-value");
 			await client.store_value("backup-test", "delete-key", "delete-value");
+			await client.store_value("backup-test", "replaced-key", "value-1");
 		});
 
 		describe("on first backup", function(){
@@ -29,14 +30,11 @@ describe("For a object backup system", function(){
 				this.result = await client.initiateObjectBackup();
 			});
 
-			it("provides a set of objects", function(){
-				expect(this.result.objects.length).to.eq(2);
-			});
-
 			it("is given a list of objects to be backed up", function(){
 				expect(this.result.objects).to.deep.eq([
 					{container:"backup-test", key: "test"},
 					{container:"backup-test", key: "delete-key"},
+					{container:"backup-test", key: "replaced-key"}
 				]);
 			});
 
@@ -75,20 +73,49 @@ describe("For a object backup system", function(){
 				});
 			});
 
-			xdescribe("when the object is replaced", function(){
+			describe("when the object is replaced", function(){
+				beforeEach(async function () {
+					const client = this.harness.client;
+					await client.delete("backup-test", "replaced-key");
+					await client.store_value("backup-test", "replaced-key", "test-2");
+				});
+
 				describe("on the next run", function(){
-					it("reports the object has been modified");
-					it("has no new objects", function(){ expect(this.incrementalResponse.created).to.be.empty; });
-					it("has no deleted objects", function(){ expect(this.incrementalResponse.destroyed).to.be.empty; });
+					beforeEach(async function(){
+						const client = this.harness.client;
+						this.incrementalResponse = await client.incrementalBackupChanges(this.result.continuation);
+						this.changes = this.incrementalResponse.changes;
+					});
+
+					it("reports the object has been modified", function () {
+						expect(this.changes.modified).to.deep.eq([
+							{container: "backup-test", key:"replaced-key"}
+						]);
+					});
+					it("has no new objects", function(){ expect(this.changes.created).to.be.empty; });
+					it("has no deleted objects", function(){ expect(this.changes.destroyed).to.be.empty; });
 				});
 			});
 
 
-			xdescribe("when a new object is added", function(){
+			describe("when a new object is added", function(){
+				beforeEach(async function () {
+					const client = this.harness.client;
+					await client.store_value("backup-test", "new-key")
+				});
+
 				describe("on the next run", function(){
-					it("has no modified objects", function() { expect(this.incrementalResponse.modified).to.be.empty; });
-					it("has no deleted objects", function(){ expect(this.incrementalResponse.destroyed).to.be.empty; });
-					it("reports the new object exists");
+					beforeEach(async function(){
+						const client = this.harness.client;
+						this.incrementalResponse = await client.incrementalBackupChanges(this.result.continuation);
+						this.changes = this.incrementalResponse.changes;
+					});
+
+					it("has no modified objects", function() { expect(this.changes.modified).to.be.empty; });
+					it("has no deleted objects", function(){ expect(this.changes.destroyed).to.be.empty; });
+					it("reports the new object exists", function(){
+						expect(this.changes.created).to.deep.eq([{container: "backup-test", key: "new-key"}]);
+					});
 				});
 			});
 		});

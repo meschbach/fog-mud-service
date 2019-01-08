@@ -105,12 +105,23 @@ class EventMetadataStore {
 				first = false;
 				return;
 			}
+			//TODO: These algorithms could be faster & take less space
 			//TODO: Interpret other types
 			if( TYPE_STORED === event.type ) {
 				//TODO: Be more intelligent about versions
 				assert(event.v == 0, "Version unsupported");
-				//Add to the list
-				changes.created.push({container: event.container, key: event.key});
+				//Check to see if it was deleted
+				const wasDestroyed = changes.destroyed.filter((obj) => {
+					return obj.container === event.container && obj.key == event.key;
+				});
+				if( wasDestroyed.length > 0 ){
+					changes.destroyed = changes.destroyed.filter( (obj) => {
+						return !(obj.container === event.container && obj.key == event.key);
+					});
+					changes.modified.push({container: event.container, key: event.key});
+				} else {
+					changes.created.push({container: event.container, key: event.key});
+				}
 			} else  if( TYPE_DELETED === event.type ){
 				//TODO: Be more intelligent about versions
 				assert(event.v == 0, "Version unsupported");
