@@ -1,5 +1,7 @@
 # Fog Mud Storage System
 
+[![Build Status](https://travis-ci.org/meschbach/fog-mud-service.svg?branch=master)](https://travis-ci.org/meschbach/fog-mud-service)
+
 A network-based system for abstracting out storage unstructured data through a container-key-value store.  The goal is
 to provide the ability for build a number of applications which are agnostic to the location of the data they work one
 while providing redundancy and encryption. For example, this could store a repository of your personal pictures, which
