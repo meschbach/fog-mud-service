@@ -2,6 +2,8 @@
  * Version 1 HTTP interface
  */
 
+const assert = require("assert");
+
 const express = require('express');
 const morgan = require('morgan');
 const {make_async} = require('junk-bucket/express');
@@ -55,7 +57,7 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 		resp.json({keys: subkeys});
 	});
 
-	app.a_get("/container", async function(req,resp) {
+	app.a_get("/container", async (req,resp) => {
 		if( !(await securityLayer.authorized(req, "list-containers")) ){
 			log.trace( "Security layer denied listing containers" );
 			return resp.forbidden("Denied");
@@ -125,7 +127,9 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 		const key_sha256 = sha256_from_string( object_name );
 		//TODO: Better default nodes
 		if( Object.keys(nodes).length <= 0 ){
-			throw new Error("No nodes registered");
+			log.warn("No nodes available to store data");
+			resp.status( 503 ).send( "No backing nodes registered" ); //TODO: This needs a test
+			return resp.end();
 		}
 		const defaultNode =  Object.keys(nodes)[0];
 		const service = nodes[defaultNode];
