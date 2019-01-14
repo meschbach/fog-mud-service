@@ -1,7 +1,7 @@
 const assert = require('assert');
 
 const TYPE_STORED = "metadata.stored";
-const TYPE_DELETED = "metdata.deleted";
+const TYPE_DELETED = "metadata.deleted";
 
 class EventMetadataStore {
 	constructor( store, logger ){
@@ -28,6 +28,7 @@ class EventMetadataStore {
 			key,
 			block
 		};
+		this.logger.debug("Storing block", event);
 		return await this.store.publish(event);
 	}
 
@@ -55,18 +56,26 @@ class EventMetadataStore {
 	async list( container, prefix ){
 		const logger = this.logger;
 		logger.debug("Listing prefix", {container, prefix});
-		const keys = [];
+		let keys = [];
 
 		await this.store.replay( function (momento, event) {
 			logger.debug("Replay", {container, prefix, momento, event});
-			if( event.type != TYPE_STORED) { return; }
+			if( ! [TYPE_STORED, TYPE_DELETED].includes( event.type ) ) { return; }
 			//TODO: Be more intelligent about versions
 			assert(event.v == 0, "Version unsupported");
 			if( event.container == container ){
 				logger.debug("Correct container", {container, prefix, momento, event});
 				//TODO: Definitely faster ways to than checking all keys every time
-				if( event.key.startsWith(prefix) && !keys.includes(event.key)) {
-					keys.push( event.key );
+				if( event.key.startsWith(prefix) ) {
+					if( event.type == TYPE_STORED ) {
+						if( !keys.includes(event.key)  ){
+							keys.push(event.key);
+							logger.debug("Inserted into keys", keys);
+						}
+					}
+					if( event.type == TYPE_DELETED ) {
+						keys = keys.filter( (k) => k != event.key );
+					}
 				}
 			}
 		} );
@@ -138,6 +147,7 @@ class EventMetadataStore {
 			container,
 			key
 		};
+		this.logger.debug("Deleting object", event);
 		return await this.store.publish(event);
 	}
 }
