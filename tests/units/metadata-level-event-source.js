@@ -78,6 +78,7 @@ class LevelStreamStorage {
 	}
 }
 
+//TODO: This is deprecated; usage should be checked an useful features should be merged.
 describe( "Given a level database", function(){
 	beforeEach(async function(){
 		this.user_id = "fear delight";
