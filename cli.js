@@ -89,4 +89,5 @@ const args = yargs
 			.option( "metadata-address", {default: "0.0.0.0" } )
 			.option( "metadata-port", {default: 12345})
 	}, runCommand( omniService ) )
+	.demandCommand()
 	.argv;
