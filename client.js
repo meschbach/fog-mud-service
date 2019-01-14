@@ -15,16 +15,26 @@ class MudHTTPClient {
 	}
 
 	async store_value( container, key, object ) {
-		this.logger.trace("Storing simple value", {key, object});
-		const storage_result = await request.post({
-			url: this.base + "/container/" + container + "/object/" + key,
-			headers: Object.assign({
-				'X-Mud-Type' : 'Immediate'
-			}, this.baseHeaders),
-			body: { object: object},
-			json: true});
-		this.logger.trace("Storage result", storage_result);
-		return storage_result;
+		try {
+			this.logger.trace("Storing simple value", {key, object});
+			const storage_result = await request.post({
+				url: this.base + "/container/" + container + "/object/" + key,
+				headers: Object.assign({
+					'X-Mud-Type': 'Immediate'
+				}, this.baseHeaders),
+				body: {object: object},
+				json: true
+			});
+			this.logger.trace("Storage result", storage_result);
+			return storage_result;
+		}catch(e) {
+			if( e.statusCode == 503 ){
+				const actualError = new Error("Unavailable: " + e.message);
+				throw actualError;
+			} else {
+				throw e;
+			}
+		}
 	}
 
 	stream_to( container, key ){
