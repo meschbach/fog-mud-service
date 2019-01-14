@@ -76,7 +76,7 @@ class CoordinatorHTTPClient {
 
 if( require && require.main == module ){
 	const {main} = require('junk-bucket');
-	const log = bunyan.createLogger({name: 'mud-mem-node', level: process.env.LOG_LEVEL || 'info'});
+	const {formattedConsoleLog} = require("junk-bucket/logging-bunyan");
 	main( async (logger) => {
 		const port = 9978;
 		const httpComponent = http_v1(logger.child({proto: 'http/storage/v1', port}), null, {port, storage: 'fs-node-blocks'});
@@ -89,7 +89,7 @@ if( require && require.main == module ){
 			logger.error("Failed to register with the coordinator, exiting", e);
 			httpComponent.end();
 		}
-	}, log);
+	}, formattedConsoleLog("fs-storage"));
 } else {
 	module.exports = {
 		fsNodeStorage: http_v1,
