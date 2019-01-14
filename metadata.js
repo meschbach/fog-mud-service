@@ -55,6 +55,15 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 		resp.json({keys: subkeys});
 	});
 
+	app.a_get("/container", async function(req,resp) {
+		if( !(await securityLayer.authorized(req, "list-containers")) ){
+			log.trace( "Security layer denied listing containers" );
+			return resp.forbidden("Denied");
+		}
+		const containers = await storage.listContainers();
+		resp.json({containers});
+	});
+
 	app.a_get("/container/:container/object/*", async (req, resp) => {
 		const key = req.params[0];
 		const container = req.params["container"];

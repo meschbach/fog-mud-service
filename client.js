@@ -73,6 +73,22 @@ class MudHTTPClient {
 		}
 	}
 
+	async listContainers( ){
+		this.logger.trace("Listing containers");
+		try {
+			const results = await request({
+				url: this.base + "/container",
+				headers: {},
+				json: true,
+				method: "GET"
+			});
+			this.logger.trace("Completed container listing");
+			return results;
+		}catch(e){
+			throw new Error("Failed to list containers because " + e.message );
+		}
+	}
+
 	async delete( container, key ){
 		this.logger.trace("Deleting", {container, key});
 		try {
