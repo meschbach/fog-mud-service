@@ -54,6 +54,9 @@ class EventMetadataStore {
 	}
 
 	async list( container, prefix ){
+		if( !prefix ){
+			prefix = "";
+		}
 		const logger = this.logger;
 		logger.debug("Listing prefix", {container, prefix});
 		let keys = [];
