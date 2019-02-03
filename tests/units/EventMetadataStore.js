@@ -1,29 +1,12 @@
 const {expect} = require("chai");
 const {EventMetadataStore} = require("../../metadata/data-store");
 const {createTestLogger} = require("../system/test-junk");
+const {MemoryEventStore} = require( "../test-junk");
 const {parallel} = require("junk-bucket/future");
-
-class MemoryStore {
-	constructor(){
-		this.events = [];
-	}
-
-	async publish( event ){
-		this.events.push(event);
-	}
-
-	async replay( f ){
-		let i = 0;
-		while( i < this.events.length ){
-			f(i, this.events[i]);
-			i++;
-		}
-	}
-}
 
 describe("EventMetadataStore", function () {
 	beforeEach(function () {
-		this.store = new EventMetadataStore( new MemoryStore(), createTestLogger("EventMetaDataStore"));
+		this.store = new EventMetadataStore( new MemoryEventStore(), createTestLogger("EventMetaDataStore", false));
 	});
 
 	describe("Given a created stored", function () {
@@ -74,6 +57,7 @@ describe("EventMetadataStore", function () {
 		describe("When the object is destroyed", function () {
 			beforeEach(async function () {
 				const removeKey = this.allKeys[1];
+				this.removedKey = removeKey;
 				await this.store.deleteObject("1-container", removeKey);
 				this.allKeys = this.allKeys.filter( (k) => k != removeKey);
 			});
@@ -86,6 +70,17 @@ describe("EventMetadataStore", function () {
 
 				it("no longer shows", function () {
 					expect(this.listing).to.deep.eq(this.allKeys);
+				});
+			});
+
+			describe("and replaced", function(){
+				beforeEach(async function() {
+					await this.store.stored("1-container", this.removedKey, "replacedValue");
+				});
+
+				it("object based backup show it as replaced", async function () {
+					const result = await this.store.objectChangesBetween();
+					expect(result.modified).to.deep.eq([{container: "1-container", key: this.removedKey}]);
 				});
 			});
 		});

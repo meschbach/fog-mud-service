@@ -26,9 +26,10 @@ const {objectBackupHTTP} = require('./metadata/object-backup');
  * Implementation
  **********************************************************************************************************************/
 async function http_v1( log, coordinator, config ) { //TODO: The client and system interfaces should be broken apart
-	const nodes = {};
-
 	const storage = coordinator.storage;
+	const metadataStorage = storage ; //Aliased since storage isn't a great name.
+	const nodesStorage = coordinator.nodesStorage;
+	assert(nodesStorage);
 	const securityLayer = await buildAuthorizationEngine( config, log.child({layer: "security"}) );
 
 	const app = make_async(express());
@@ -78,9 +79,13 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 		//
 		const object_name =  container + ":" + key;
 		const key_sha256 = sha256_from_string( object_name );
-		//TODO: Better default nodes
-		const defaultNode =  Object.keys(nodes)[0];
-		const service = nodes[defaultNode];
+		//Find the last node it was stored
+		const onlineNode = (await nodesStorage.onlineNodes())[0];
+		if( !onlineNode ){
+			resp.status(503).send("No nodes online");
+			return;
+		}
+		const service = onlineNode.address;
 		//TODO: Revisit design, should support getting a number of blocks too
 		const serviceURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
 		log.info("Requested object storage", {container, key, key_sha256, serviceURL});
@@ -104,9 +109,8 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 		const object_name =  container + ":" + key;
 		const key_sha256 = sha256_from_string( object_name );
 		//TODO: Better default nodes
-		log.info("Nodes available for storage: ", nodes);
-		const defaultNode =  Object.keys(nodes)[0];
-		const service = nodes[defaultNode];
+		const node = (await nodesStorage.allNodes())[0];
+		const service = node.address;
 		//TODO: Revisit design, should support getting a number of blocks too
 		const serviceURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
 		log.info("Requested object storage", {container, key, key_sha256, serviceURL});
@@ -126,28 +130,35 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 		const object_name =  container + ":" + key;
 		const key_sha256 = sha256_from_string( object_name );
 		//TODO: Better default nodes
-		if( Object.keys(nodes).length <= 0 ){
+		const value = req.body.object;
+		const size = !value ? 0 : value.length;
+		log.info("Available nodes", (await nodesStorage.allNodes()));
+		const matchingNodes = await nodesStorage.findAvailableSpace(size);
+
+		if( !matchingNodes ){
 			log.warn("No nodes available to store data");
-			resp.status( 503 ).send( "No backing nodes registered" ); //TODO: This needs a test
+			resp.status( 503 ).send( "No space available" );
 			return resp.end();
 		}
-		const defaultNode =  Object.keys(nodes)[0];
-		const service = nodes[defaultNode];
+		const service = matchingNodes.address;
 		//TODO: Revisit registration
 		log.info("Using node for ingress storage", {service});
 		const serviceURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
 
-		await storage.stored( container, key, key_sha256 );
+		const eventID = await metadataStorage.stored( container, key, key_sha256 );
+		log.info("Completed recording storage event");
 
 		const result = await request.post({
 			url: serviceURL,
 			body: req.body.object
 		});
-		resp.json(result);
+		const momento = await metadataStorage.currentVersion();
+		log.info("Completed storage", {eventID, momento});
+		resp.json({momento});
 	});
 
 
-	app.post("/container/:container/object-stream/*", async (req, resp) => {
+	app.a_post("/container/:container/object-stream/*", async (req, resp) => {
 		const key = req.params[0];
 		const container = req.params["container"];
 		// Authorize
@@ -158,9 +169,14 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 		//
 		const object_name =  container + ":" + key;
 		const key_sha256 = sha256_from_string( object_name );
-		//TODO: Better default ndoes
-		const defaultNode =  Object.keys(nodes)[0];
-		const service = nodes[defaultNode];
+		//TODO: Better default nodes
+		const storageNode = await nodesStorage.findAvailableSpace(4 * 1024 );
+		if( !storageNode ){
+			log.warn("No nodes available to store data");
+			resp.status( 503 ).send( "No backing nodes registered" ); //TODO: This needs a test
+			return resp.end();
+		}
+		const service = storageNode.address;
 		//TODO: Revisit registration
 		const serviceURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
 		req.pipe(requestStream.post(serviceURL)).on('response', () => {
@@ -183,9 +199,10 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 			log.trace( "Denying delete", {container, key} );
 			return resp.forbidden("Denied");
 		}
-		// Verify we have the object
+		// TODO: Verify the object exists and the storage locations
+		// Log we have deleted the object in question
 		const result = await storage.deleteObject(container, key);
-		return resp.json({});
+		resp.status(204).end();
 	});
 
 	//Node controls
@@ -200,8 +217,13 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 			resp.status(422);
 			return resp.json({invalid: {missing: ["port"]}});
 		}
+		if( details.spaceAvailable === undefined || details.spaceAvailable == null ){
+			resp.status(422);
+			return resp.json({invalid: {missing: ["spaceAvailable"]}});
+		}
 		const host = details.host;
 		const port = details.port;
+		const spaceAvailable = details.spaceAvailable;
 
 		//TODO: A less stupid approach to this
 		const name = req.params["name"];
@@ -210,8 +232,9 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 		// 	resp.end();
 		// }
 
-		nodes[name] = {host, port};
-		resp.end()
+		await nodesStorage.registerNode( host + ":" + port, spaceAvailable, {protocol: "http/v1", host, port} );
+		// nodes[name] = {host, port};
+		resp.end();
 	});
 
 	//backup interface

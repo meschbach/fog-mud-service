@@ -40,7 +40,12 @@ class LevelUpEventStore {
 
 	async _getTerm() {
 		const lastTerm = await level_keyOptional(this.db,"v0/term");
-		const term = (lastTerm || -1) + 1;
+		let term;
+		if( lastTerm ){
+			term = parseInt( lastTerm ) + 1;
+		} else {
+			term = 0;
+		}
 		await this.db.put("v0/term", term);
 		return term;
 	}
@@ -91,47 +96,33 @@ class LevelUpEventStore {
 		return v0_deserialize(dbRepresentation);
 	}
 
-	async replay( consumer, fromMomento ){
-		const options = { keys: true, values: true, lt: 'v0/eventsz' };
-		if( fromMomento ){
-			options.gte = momento_key(fromMomento);
-		} else {
-			options.gt = "v0/events";
-		}
-
-		let lastMomento;
-		const stream = this.db.createReadStream(options);
-		stream.on('data', function( data ){
-			//TODO: It may be better to use a 'Transform' or look at how to adapt 'Tranform' to use promises.
-			stream.pause();
-
-			const stringKey = data.key.toString("utf-8");
-			const keyParts = stringKey.split("/");
-			const momentoParts = last(keyParts,2);
-			const term = parseInt(momentoParts[0]);
-			const id = parseInt(momentoParts[1]);
-			const momento = Object.freeze({ term, id });
-			lastMomento = momento;
-
-			const constObject = v0_deserialize(data.value);
-
-			try {
-				const promise = consumer(momento, constObject);
-				if (promise && promise.then) {
-					promise.then(() => {
-						stream.resume();
-					}, (e) => {
-						stream.emit('error', e);
-					});
+	async replay( consumer, fromMomento = {} ){
+		const maxTerm = await this._getTerm();
+		let term = fromMomento.term || 0;
+		let id = fromMomento.id || 1;
+		let lastGoodMomento;
+		let hadMore;
+		const prefix = "v0/events";
+		do {
+			const key = prefix + "/" + term + "/" + id;
+			const record = await level_keyOptional(this.db, key);
+			if( !record ){
+				if( term >= maxTerm ){
+					hadMore = false;
 				} else {
-					stream.resume();
+					term++;
+					id = 1;
 				}
-			}catch(e){
-				stream.emit('error',e);
+			} else {
+				hadMore = true;
+				const momento = Object.freeze({term,id});
+				const constObject = v0_deserialize(record);
+				await consumer(momento, constObject);
+				id++;
+				lastGoodMomento = momento;
 			}
-		});
-		await promiseEvent(stream, 'end');
-		return lastMomento;
+		} while( hadMore );
+		return lastGoodMomento;
 	}
 }
 

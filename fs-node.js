@@ -67,10 +67,14 @@ class CoordinatorHTTPClient {
 	}
 
 	//TODO: Node has to be aware of exposure itself
-	async register_http( name, host, port ){
+	async register_http( name, host, port, space = 0 ){
 		this.logger.trace("Registering as an HTTP service", {host, port});
-		const result = await request.post({url: this.base + "/nodes/" + name, body: {host, port, type: 'persistent'}, json: true});
-		this.logger.trace("Received result", result);
+		try {
+			const result = await request.post({url: this.base + "/nodes/" + name, body: {host, port, spaceAvailable: space}, json: true});
+			this.logger.trace("Received result", result);
+		}catch(e){
+			throw new Error(e.message);
+		}
 	}
 }
 

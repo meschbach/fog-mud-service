@@ -13,7 +13,7 @@
     "bunyan": "1.8.12",
     "express": "4.16.4",
     "jsonwebtoken": "8.4.0",
-    "junk-bucket": "1.0.7",
+    "junk-bucket": "1.1.1",
     "leveldown": "4.0.1",
     "levelup": "4.0.0",
     "morgan": "1.9.1",
@@ -24,6 +24,7 @@
   "devDependencies": {
     "bunyan-format": "0.2.1",
     "chai": "4.2.0",
-    "mocha": "5.2.0"
+    "mocha": "5.2.0",
+    "sinon": "7.2.3"
   }
 }

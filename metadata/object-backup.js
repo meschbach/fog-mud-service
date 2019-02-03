@@ -34,8 +34,10 @@ function objectBackupHTTP( logger, metadataStorage ) {
 	router.a_get("/:id", async function( req, resp ){
 		const fromVersion = JSON.parse(req.params["id"]);
 		const toRevision = await metadataStorage.currentVersion();
+		logger.info("Backup request from ", {fromVersion, toRevision});
 
 		const changes = await metadataStorage.objectChangesBetween(fromVersion, toRevision);
+		logger.info("Changes", changes);
 		resp.json({
 			continuation: JSON.stringify(toRevision),
 			changes

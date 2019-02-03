@@ -25,7 +25,7 @@ class MudHTTPClient {
 				body: {object: object},
 				json: true
 			});
-			this.logger.trace("Storage result", storage_result);
+			this.logger.trace("Storage result", {storage_result});
 			return storage_result;
 		}catch(e) {
 			if( e.statusCode == 503 ){
@@ -108,7 +108,7 @@ class MudHTTPClient {
 				json: true,
 				method: "DELETE"
 			});
-			this.logger.trace("Deleted", deleteResults);
+			this.logger.trace("Deleted", {deleteResults});
 			return deleteResults;
 		}catch (e) {
 			throw new Error("Failed to delete '" + key + "' from container '" + container + "' because " + e.message );

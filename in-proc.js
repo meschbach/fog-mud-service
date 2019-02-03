@@ -16,7 +16,7 @@ const {Context} = require("./junk");
 const {newTempDirectory} = require("./junk/context");
 const {openLevelDB} = require("./junk/leveldb");
 const {LevelUpEventStore} = require("./junk/event-store-level");
-const {EventMetadataStore} = require('./metadata/data-store');
+const {EventMetadataStore, NodesEventStore} = require('./metadata/data-store');
 
 const {mkdir} = require('junk-bucket/fs');
 
@@ -33,10 +33,12 @@ async function inPorcessService( logger ){
 	const metadataLevelDB = await openLevelDB( context, metadataDir );
 	const metadataLevelEventStore = new LevelUpEventStore(metadataLevelDB);
 	const metadataStorage = new EventMetadataStore(metadataLevelEventStore, logger.child({service:"metadata", component: "event storage"}));
+	const nodesStorage = new NodesEventStore(metadataLevelEventStore);
 
 	// Create Metadata service
 	const coordinator = {
-		storage: metadataStorage
+		storage: metadataStorage,
+		nodesStorage
 	};
 	const metaData = await http_v1(logger.child({app: 'metadata', port: 0}), coordinator, {port: 0});
 
@@ -52,7 +54,7 @@ async function inPorcessService( logger ){
 	const blockStorageAddress = await blockStorage.address;
 	logger.info("Block storage: ", blockStorageAddress);
 	const coordination = new CoordinatorHTTPClient("http://127.0.0.1:" + metadataAddress.port, logger.child({proto: "http/1.1/metadata"}));
-	await coordination.register_http("default", blockStorageAddress.address, blockStorageAddress.port );
+	await coordination.register_http("default", blockStorageAddress.address, blockStorageAddress.port, 10 * 1024 * 1024 );
 
 	return {
 		metadataAddress,

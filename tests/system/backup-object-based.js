@@ -10,6 +10,7 @@ const {inPorcessService} = require("../../in-proc");
 describe("For a object backup system", function(){
 	beforeEach(async function(){
 		const logger = createTestLogger("object-backup-initial", false);
+		this.logger = logger;
 		this.harness = await inPorcessService( logger );
 	});
 	afterEach(async function(){

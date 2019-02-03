@@ -93,9 +93,9 @@ describe("LevelUpEventStore", function () {
 			];
 
 			beforeEach(async function () {
-				await parallel(events.map(async (v) => {
+				for( const v of events ){
 					await this.eventStore.publish(v);
-				}));
+				}
 			});
 
 			describe("And the events are replayed", function(){
@@ -105,11 +105,8 @@ describe("LevelUpEventStore", function () {
 					this.replayed = replayed
 				});
 
-				it("provides all given events", function () {
-					function idComparator(l,r) {
-						return l.id - r.id;
-					}
-					expect(this.replayed.sort( idComparator)).to.deep.eq( events.sort(idComparator) );
+				it("provides this events in order", function () {
+					expect( this.replayed ).to.deep.eq( events );
 				});
 			});
 		});

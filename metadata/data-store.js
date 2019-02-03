@@ -20,7 +20,7 @@ class EventMetadataStore {
 		return await this.store.currentVersion();
 	}
 
-	async stored( container, key, block ){
+	async stored( container, key, block ) {
 		const event = {
 			type: TYPE_STORED,
 			v: 0,
@@ -111,12 +111,14 @@ class EventMetadataStore {
 			destroyed: []
 		};
 
+		const logger = this.logger.child({op: "Event replay"});
 		let first = true; //TODO: build this into the store replay
 		await this.store.replay( function (momento, event) {
 			if( first ){
 				first = false;
 				return;
 			}
+			logger.debug("Replaying", {momento, event});
 			//TODO: These algorithms could be faster & take less space
 			//TODO: Interpret other types
 			if( TYPE_STORED === event.type ) {
@@ -155,6 +157,91 @@ class EventMetadataStore {
 	}
 }
 
+const EVENT_PREFIX = "mud:nodes.";
+const REGISTER_NODE = EVENT_PREFIX + "register";
+const NODE_OFFLINE = EVENT_PREFIX + "offline";
+const NODE_SPACE_USED = EVENT_PREFIX + "used-space";
+
+class NodesEventStore {
+	constructor( events ){
+		this.events = events;
+	}
+
+	async allNodes(){
+		let nodes = {};
+		await this.events.replay( ( _m, e) => {
+			const type = e.type;
+			if( type === REGISTER_NODE ){
+				if( e.v !== 0 ){ throw new Error("Unexpected version"); }
+				if( nodes[e.name] ) {
+					throw new Error("Node by name " + e.name + " already exists" );
+				} else {
+					nodes[e.name] = {name: e.name, spaceAvailable: e.spaceAvailable, online: true, address: e.address};
+				}
+			} else if( type === NODE_OFFLINE ) {
+				if (e.v !== 0) { throw new Error("Unexpected version"); }
+				const nodeName = e.name;
+				const node = nodes[nodeName];
+				if (!node) {
+					throw new Error("Missing node while marking offline " + nodeName);
+				}
+				node.online = false;
+			} else if( type == NODE_SPACE_USED ){
+				if (e.v !== 0) { throw new Error("Unexpected version"); }
+				const nodeName = e.name;
+				const node = nodes[nodeName];
+				if (!node) {
+					throw new Error("Missing node while marking offline " + nodeName);
+				}
+				node.spaceAvailable = node.spaceAvailable - e.size;
+			}
+		});
+		return Object.values(nodes);
+	}
+
+	async onlineNodes(){
+		return (await this.allNodes()).filter( (n) => n.online);
+	}
+
+	async registerNode( name, spaceAvailable, address ){
+		assert(address);
+		return await this.events.publish({
+			type: REGISTER_NODE,
+			v:0,
+			name,
+			spaceAvailable,
+			address
+		});
+	}
+
+	async offline( name ){
+		return await this.events.publish({
+			type: NODE_OFFLINE,
+			v:0,
+			name
+		});
+	}
+
+	async usedSpace( name, size ){
+		return await this.events.publish({
+			type: NODE_SPACE_USED,
+			v:0,
+			name,
+			size
+		});
+	}
+
+	async findAvailableSpace( size ){
+		const onlineNodes = await this.onlineNodes();
+		const fittingNodes = onlineNodes.filter( (n) => n.spaceAvailable >= size );
+		if( fittingNodes.length == 0 ){ return undefined; }
+		const selectedNode = fittingNodes[0];
+		await this.usedSpace(selectedNode.name, size);
+		return selectedNode;
+	}
+}
+
 module.exports = {
-	EventMetadataStore
+	EventMetadataStore,
+	NodesEventStore
 };

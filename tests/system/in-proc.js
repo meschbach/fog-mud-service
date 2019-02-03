@@ -109,8 +109,9 @@ describe( "In process harness", function() {
 			it("provides the full path to the elements within the bucket", function () {
 				const expectKeys = [].concat(
 					storedValues.map( v => keyPrefix + v),
-					streamedValues.map(v => keyPrefix + v));
-				expect(this.keyResults).to.deep.eq({keys: expectKeys});
+					streamedValues.map(v => keyPrefix + v)).sort();
+				const actualKeys = this.keyResults.keys.sort();
+				expect(actualKeys).to.deep.eq(expectKeys);
 			});
 		})
 	});
