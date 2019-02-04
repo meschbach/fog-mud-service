@@ -1,31 +1,28 @@
 const {asyncRouter} = require("junk-bucket/express");
+const {validate} = require("junk-bucket/validation");
 
 function buildNodesHTTPv1( log, nodesStorage ){
 	const router = asyncRouter(log);
 	router.a_post("/:name", async (req, resp) => {
-		const details = req.body;
-		log.info("Add node request", details);
-		if( !details.host ){
-			resp.status(422);
-			return resp.json({invalid: {missing: ["host"]}});
-		}
-		if( !details.port ){
-			resp.status(422);
-			return resp.json({invalid: {missing: ["port"]}});
-		}
-		if( details.spaceAvailable === undefined || details.spaceAvailable == null ){
-			resp.status(422);
-			return resp.json({invalid: {missing: ["spaceAvailable"]}});
-		}
-		const host = details.host;
-		const port = details.port;
-		const spaceAvailable = details.spaceAvailable;
-
-		//TODO: A less stupid approach to this
+		//Extract request parameters
 		const name = req.params["name"];
 
+		//Verify request entity
+		const requestValidator = validate(req.body);
+		const host = requestValidator.string( "host");
+		const port = requestValidator.numeric("port");
+		const spaceAvailable = requestValidator.numeric("spaceAvailable");
+
+		const requestValidation = requestValidator.done();
+		if( !requestValidation.valid ){
+			resp.status(422);
+			resp.json({invalid: requestValidation.result});
+			return;
+		}
+
+		// Update our storage setup
 		await nodesStorage.registerNode( name, spaceAvailable, {protocol: "http/v1", host, port} );
-		resp.end();
+		resp.status(204).end();
 	});
 	return router;
 }
