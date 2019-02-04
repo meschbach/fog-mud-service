@@ -20,6 +20,7 @@ const {sha256_from_string} = require("./junk");
  * Internal Dependencies
  **********************************************************************************************************************/
 const {buildAuthorizationEngine} = require('./security');
+const {buildNodesHTTPv1} = require("./metadata/http-nodes");
 const {objectBackupHTTP} = require('./metadata/object-backup');
 
 /***********************************************************************************************************************
@@ -206,32 +207,7 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 	});
 
 	//Node controls
-	app.a_post("/nodes/:name", async (req, resp) => {
-		const details = req.body;
-		log.info("Add node request", details);
-		if( !details.host ){
-			resp.status(422);
-			return resp.json({invalid: {missing: ["host"]}});
-		}
-		if( !details.port ){
-			resp.status(422);
-			return resp.json({invalid: {missing: ["port"]}});
-		}
-		if( details.spaceAvailable === undefined || details.spaceAvailable == null ){
-			resp.status(422);
-			return resp.json({invalid: {missing: ["spaceAvailable"]}});
-		}
-		const host = details.host;
-		const port = details.port;
-		const spaceAvailable = details.spaceAvailable;
-
-		//TODO: A less stupid approach to this
-		const name = req.params["name"];
-
-		await nodesStorage.registerNode( name, spaceAvailable, {protocol: "http/v1", host, port} );
-		resp.end();
-	});
-
+	app.use("/nodes", buildNodesHTTPv1( log.child({subsystem: "nodes", iface: "httpv1"}), nodesStorage));
 	//backup interface
 	app.use("/object-backup", objectBackupHTTP( log.child({subsystem: "backup"}), storage));
 
