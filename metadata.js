@@ -227,13 +227,8 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 
 		//TODO: A less stupid approach to this
 		const name = req.params["name"];
-		// if( nodes[name] ) {
-		// 	resp.status(409, "Node name already exists");
-		// 	resp.end();
-		// }
 
-		await nodesStorage.registerNode( host + ":" + port, spaceAvailable, {protocol: "http/v1", host, port} );
-		// nodes[name] = {host, port};
+		await nodesStorage.registerNode( name, spaceAvailable, {protocol: "http/v1", host, port} );
 		resp.end();
 	});
 
