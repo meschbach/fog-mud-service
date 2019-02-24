@@ -25,8 +25,27 @@ async function newMetadataNode( parentContext ){
 		await metaData.end();
 	});
 	const metadataAddress = await metaData.address;
-	const client = new MudHTTPClient("http://127.0.0.1:"+ metadataAddress.port, context.logger.child({proto: "httpv1.1/metadata"}));
-	return client;
+	const controlPlane = new CoordinatorHTTPClient("http://127.0.0.1:" + metadataAddress.port, context.logger.child({proto: "http/1.1/control/v1"}));
+	const client = new MudHTTPClient("http://127.0.0.1:"+ metadataAddress.port, context.logger.child({proto: "httpv1.1/metadata/v1"}));
+	return {
+		client,
+		controlPlane
+	};
+}
+
+const {contextTemporaryDirectory} = require("junk-bucket/fs");
+const {fsNodeStorage, CoordinatorHTTPClient} = require("../../fs-node");
+async function newFileSystemStorage( parentContext ){
+	const context = parentContext.subcontext("metadata");
+	const dir = await contextTemporaryDirectory(context, "fs-node");
+	context.blockStorage = await fsNodeStorage(context.logger.child({app: 'fs-storage'}), null, { storage: dir });
+	context.onCleanup(() => {
+		context.blockStorage.end();
+	});
+
+	const address = await context.blockStorage.address;
+	context.controlPort = address.port;
+	return context;
 }
 
 describe( "Given an instance of the system without nodes", function() {
@@ -34,7 +53,9 @@ describe( "Given an instance of the system without nodes", function() {
 		const logger = createTestLogger("no-nodes", false);
 		const context = new Context("no-nodes", logger);
 		this.context = context;
-		this.metadata = await newMetadataNode(context);
+		const {client, controlPlane} = await newMetadataNode(context);
+		this.metadata = client;
+		this.controlPlane = controlPlane;
 	});
 	afterEach(async function(){
 		this.context.cleanup()
@@ -48,6 +69,17 @@ describe( "Given an instance of the system without nodes", function() {
 			}catch(e){
 				//Passed
 			}
+		});
+	});
+
+	describe("When a node is added with 1M of storage", function(){
+		beforeEach(async function setupStorage() {
+			this.fsNode = await newFileSystemStorage(this.context);
+			await this.controlPlane.register_http("primary", "localhost", this.fsNode.controlPort, 1024 * 1024 );
+		});
+
+		it("is able to store a small string", async function(){
+			await this.metadata.store_value("test", "key","should succeed");
 		});
 	});
 });
