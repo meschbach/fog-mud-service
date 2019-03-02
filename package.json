@@ -24,7 +24,7 @@
   "devDependencies": {
     "bunyan-format": "0.2.1",
     "chai": "4.2.0",
-    "mocha": "6.0.1",
-    "sinon": "7.2.4"
+    "mocha": "6.0.2",
+    "sinon": "7.2.6"
   }
 }
