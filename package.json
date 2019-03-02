@@ -3,6 +3,7 @@
   "version": "1.2.0",
   "description": "Coordinator for the unstructured data storage",
   "main": "index.js",
+  "repository": "meschbach/fog-mud-service",
   "scripts": {
     "test": "mocha tests/units && mocha tests/system"
   },
