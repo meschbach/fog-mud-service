@@ -7,6 +7,8 @@ const {http_v1} = require("../../metadata");
 const {MudHTTPClient} = require("../../client");
 const {expect} = require("chai");
 
+const {promiseEvent} = require("junk-bucket/future");
+
 async function newMetadataNode( parentContext ){
 	const context = parentContext.subcontext("metadata");
 	const db = await newTemporaryLevelDB(context);
@@ -63,12 +65,14 @@ describe( "Given an instance of the system without nodes", function() {
 
 	describe("When asked to store an object", function(){
 		it("refuses", async function () {
+			let threw = true;
 			try {
 				await this.metadata.store_value( "test", "key","is going to fail");
-				expect("Failed to throw").to.be.false();
+				threw = false;
 			}catch(e){
 				//Passed
 			}
+			expect(threw).to.be.true;
 		});
 	});
 
@@ -80,6 +84,26 @@ describe( "Given an instance of the system without nodes", function() {
 
 		it("is able to store a small string", async function(){
 			await this.metadata.store_value("test", "key","should succeed");
+		});
+
+		describe( "And all space is consumed via a stream", function(){
+			beforeEach(async function consumeSpace() {
+				const stream = this.metadata.stream_to( "large", "blob" );
+				stream.write(Buffer.alloc(1024*1024));
+				stream.end();
+				await promiseEvent( stream, 'close')
+			});
+
+			it( "is out of space" , async function() {
+				let threw = true;
+				try {
+					await this.metadata.store_value("south", "east", "highway");
+					threw = false;
+				}catch(e){
+					//Passed
+				}
+				expect(threw).to.be.true;
+			})
 		});
 	});
 });

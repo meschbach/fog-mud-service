@@ -133,7 +133,6 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 		//TODO: Better default nodes
 		const value = req.body.object;
 		const size = !value ? 0 : value.length;
-		log.info("Available nodes", (await nodesStorage.allNodes()));
 		const matchingNodes = await nodesStorage.findAvailableSpace(size);
 
 		if( !matchingNodes ){
@@ -160,6 +159,8 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 
 
 	app.a_post("/container/:container/object-stream/*", async (req, resp) => {
+		const reserveSpaceForStream = 1024 * 1024;
+
 		const key = req.params[0];
 		const container = req.params["container"];
 		// Authorize
@@ -170,13 +171,16 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 		//
 		const object_name =  container + ":" + key;
 		const key_sha256 = sha256_from_string( object_name );
-		//TODO: Better default nodes
-		const storageNode = await nodesStorage.findAvailableSpace(4 * 1024 );
-		if( !storageNode ){
+		/*
+		 * Find available nodes
+		 */
+		const matchingNode = await nodesStorage.findAvailableSpace(reserveSpaceForStream);
+		if( !matchingNode ){
 			log.warn("No nodes available to store data");
 			resp.status( 503 ).send( "No backing nodes registered" ); //TODO: This needs a test
 			return resp.end();
 		}
+		const storageNode = matchingNode;
 		const service = storageNode.address;
 		//TODO: Revisit registration
 		const serviceURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;

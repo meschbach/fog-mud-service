@@ -29,8 +29,7 @@ class MudHTTPClient {
 			return storage_result;
 		}catch(e) {
 			if( e.statusCode == 503 ){
-				const actualError = new Error("Unavailable: " + e.message);
-				throw actualError;
+				throw new Error("Unavailable: " + e.message);
 			} else {
 				throw e;
 			}
