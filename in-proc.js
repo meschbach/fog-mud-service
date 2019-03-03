@@ -13,7 +13,7 @@ const {MudHTTPClient} = require("./client");
 const {fsNodeStorage, CoordinatorHTTPClient} = require("./fs-node");
 
 const {Context} = require("./junk");
-const {newTempDirectory} = require("./junk/context");
+const {contextTemporaryDirectory} = require("junk-bucket/fs");
 const {openLevelDB} = require("./junk/leveldb");
 const {LevelUpEventStore} = require("./junk/event-store-level");
 const {EventMetadataStore, NodesEventStore} = require('./metadata/data-store');
@@ -28,7 +28,7 @@ async function makeSubdirectory( base, sub ){
 
 async function inPorcessService( logger ){
 	const context = new Context("In-process Mud system", logger);
-	const root = await newTempDirectory(context, "mud-");
+	const root = await contextTemporaryDirectory(context, "mud-");
 	const metadataDir = await makeSubdirectory(root, "metadata");
 	const metadataLevelDB = await openLevelDB( context, metadataDir );
 	const metadataLevelEventStore = new LevelUpEventStore(metadataLevelDB);

@@ -4,10 +4,10 @@ const assert = require('assert');
 const levelup = require('levelup');
 const leveldown = require('leveldown');
 
-const {newTempDirectory} = require("./context");
+const {contextTemporaryDirectory} = require("junk-bucket/fs");
 
 async function newTemporaryLevelDB(context){
-	const dir = await newTempDirectory(context, "level-event-store-");
+	const dir = await contextTemporaryDirectory(context, "level-event-store-");
 	return openLevelDB(context, dir);
 }
 
