@@ -101,7 +101,7 @@ class LevelUpEventStore {
 		let term = fromMomento.term || 0;
 		let id = fromMomento.id || 1;
 		let lastGoodMomento;
-		let hadMore;
+		let hadMore = true;
 		const prefix = "v0/events";
 		do {
 			const key = prefix + "/" + term + "/" + id;

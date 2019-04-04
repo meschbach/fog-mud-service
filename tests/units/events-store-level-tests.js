@@ -1,9 +1,11 @@
-const {newTemporaryLevelStore} = require("../../junk/event-store-level");
+const {newTemporaryLevelStore, LevelUpEventStore} = require("../../junk/event-store-level");
 
 const {expect} = require("chai");
 const {Context} = require("../../junk");
 const {parallel} = require("junk-bucket/future");
 const {createTestLogger} = require("../system/test-junk");
+const {contextTemporaryDirectory} = require("junk-bucket/fs");
+const {openLevelDB} = require("../../junk/leveldb");
 
 describe("LevelUpEventStore", function () {
 	describe("Given a new LevelEventStore", function () {
@@ -108,6 +110,38 @@ describe("LevelUpEventStore", function () {
 				it("provides this events in order", function () {
 					expect( this.replayed ).to.deep.eq( events );
 				});
+			});
+		});
+	});
+
+	//Regression check
+	describe("Given an event stream with no event published in the first term", function () {
+		beforeEach(async function () {
+			this.context = new Context("New LevelEventStore", createTestLogger("Test", false));
+			this.wd = await contextTemporaryDirectory(this.context, "leveldb-event-source");
+			const opening1 = this.context.subcontext("Opening 1");
+			const db1 = openLevelDB(opening1,this.wd);
+			await (new LevelUpEventStore(db1)).currentVersion();
+			await opening1.cleanup();
+
+			const opening2 = this.context.subcontext("Opening 2");
+			const db2 = openLevelDB(opening2,this.wd);
+			const event2 = new LevelUpEventStore(db2);
+			await event2.publish({opening: 2})
+			await opening2.cleanup();
+
+			this.db = openLevelDB(this.context,this.wd);
+			this.events = new LevelUpEventStore(this.db);
+		});
+		afterEach(async function () {
+			this.context.cleanup();
+		});
+
+		describe("When replaying events", function () {
+			it("plays events after the empty event set", async function () {
+				const events = [];
+				await this.events.replay((_m,e) => events.push(e));
+				expect(events).to.deep.eq([{opening:2}]);
 			});
 		});
 	});
