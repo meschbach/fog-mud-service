@@ -88,7 +88,7 @@ if( require && require.main == module ){
 			const coordinator = "http://127.0.0.1:9977";
 			const name = "example";
 			const client = new CoordinatorHTTPClient(coordinator, logger);
-			await client.register_http(name, "127.0.0.1", port);
+			await client.register_http(name, "127.0.0.1", port, 1024 * 1024);
 		}catch(e){
 			logger.error("Failed to register with the coordinator, exiting", e);
 			httpComponent.end();

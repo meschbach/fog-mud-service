@@ -24,6 +24,12 @@ function buildNodesHTTPv1( log, nodesStorage ){
 		await nodesStorage.registerNode( name, spaceAvailable, {protocol: "http/v1", host, port} );
 		resp.status(204).end();
 	});
+
+	router.a_get("/", async (_req, resp) =>{
+		const nodes = await nodesStorage.allNodes();
+		resp.json(nodes);
+	});
+
 	return router;
 }
 

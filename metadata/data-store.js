@@ -173,11 +173,7 @@ class NodesEventStore {
 			const type = e.type;
 			if( type === REGISTER_NODE ){
 				if( e.v !== 0 ){ throw new Error("Unexpected version"); }
-				if( nodes[e.name] ) {
-					throw new Error("Node by name " + e.name + " already exists" );
-				} else {
-					nodes[e.name] = {name: e.name, spaceAvailable: e.spaceAvailable, online: true, address: e.address};
-				}
+				nodes[e.name] = {name: e.name, spaceAvailable: e.spaceAvailable, online: true, address: e.address};
 			} else if( type === NODE_OFFLINE ) {
 				if (e.v !== 0) { throw new Error("Unexpected version"); }
 				const nodeName = e.name;

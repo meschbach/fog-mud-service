@@ -32,11 +32,15 @@ describe("For a object backup system", function(){
 			});
 
 			it("is given a list of objects to be backed up", function(){
-				expect(this.result.objects).to.deep.eq([
-					{container:"backup-test", key: "test"},
-					{container:"backup-test", key: "delete-key"},
-					{container:"backup-test", key: "replaced-key"}
-				]);
+				expect(this.result.changes).to.deep.eq({
+					created: [
+						{container:"backup-test", key: "test"},
+						{container:"backup-test", key: "delete-key"},
+						{container:"backup-test", key: "replaced-key"}
+					],
+					destroyed: [],
+					modified: []
+				});
 			});
 
 			describe("when nothing changes", function() {

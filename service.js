@@ -1,17 +1,7 @@
 
-
 const {LevelUpEventStore} = require("./junk/event-store-level");
 const {openLevelDB} = require("./junk/leveldb");
-const {EventMetadataStore} = require("./metadata/data-store");
-
-async function level_factory( parentLogger, options, rootContext ) {
-	const fileName = options["level-storage"];
-	const logger = parentLogger.child({component: "level", fileName });
-
-	const leveldb = await openLevelDB(rootContext, fileName);
-	const underlyingStore = new LevelUpEventStore(leveldb);
-	return new EventMetadataStore( underlyingStore, logger );
-}
+const {EventMetadataStore, NodesEventStore} = require("./metadata/data-store");
 
 const {main} = require('junk-bucket');
 const {Context} = require("./junk");
@@ -28,19 +18,14 @@ main( async (logger) => {
 	//Setup the root context
 	const root = new Context("process", logger.child({component: "metadata"}));
 
-	//Figure out the storage layer (I went way to abstract here)
-	const storageMechanisms = {
-		'level': level_factory
-	};
-	const storageMechanism = options['storage'];
-	const storageFactory = storageMechanisms[storageMechanism];
-	if( !storageFactory ){
-		logger.error("No such mechanism", {storageMechanism});
-		return false;
-	}
-	const storage = await storageFactory( logger, options, root );
+	const levelDBStorage =  options["level-storage"];
+	const leveldb = await openLevelDB(root, levelDBStorage);
+	const underlyingStore = new LevelUpEventStore(leveldb);
+	const metadataStroge = new EventMetadataStore( underlyingStore, logger );
+	const nodesStorage = new NodesEventStore(underlyingStore);
 	const coordinator = {
-		storage
+		storage: metadataStroge,
+		nodesStorage
 	};
 
 	// Configure the HTTP layer
