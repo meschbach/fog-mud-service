@@ -48,7 +48,7 @@ describe( "Given a valid system", function () {
 			});
 
 			it("gives the names of the containers", function () {
-				expect(this.containers).to.deep.eq(containerNames);
+				expect(this.containers.sort()).to.deep.eq(containerNames.sort());
 			});
 		});
 	});
