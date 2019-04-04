@@ -30,6 +30,27 @@ function buildNodesHTTPv1( log, nodesStorage ){
 		resp.json(nodes);
 	});
 
+	router.a_post("/:name/size", async (req,resp) => {
+		//Extract request parameters
+		const name = req.params["name"];
+
+		//Verify request entity
+		const requestValidator = validate(req.body);
+		const sizeIncrease = requestValidator.numeric( "increaseCapacity");
+
+		const requestValidation = requestValidator.done();
+		if( !requestValidation.valid ){
+			resp.status(422);
+			resp.json({invalid: requestValidation.result});
+			return;
+		}
+
+		// Update our storage setup
+		await nodesStorage.increaseNodeCapacity(name, sizeIncrease);
+		const result = await nodesStorage.capacityFor(name);
+		resp.json(result);
+	});
+
 	return router;
 }
 

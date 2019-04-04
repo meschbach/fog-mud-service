@@ -161,6 +161,7 @@ const EVENT_PREFIX = "mud:nodes.";
 const REGISTER_NODE = EVENT_PREFIX + "register";
 const NODE_OFFLINE = EVENT_PREFIX + "offline";
 const NODE_SPACE_USED = EVENT_PREFIX + "used-space";
+const NODE_CAPACITY_INCREASE = EVENT_PREFIX + "capacity-increase";
 
 class NodesEventStore {
 	constructor( events ){
@@ -171,9 +172,16 @@ class NodesEventStore {
 		let nodes = {};
 		await this.events.replay( ( _m, e) => {
 			const type = e.type;
-			if( type === REGISTER_NODE ){
-				if( e.v !== 0 ){ throw new Error("Unexpected version"); }
+			if( type === REGISTER_NODE ) {
+				if (e.v !== 0) {
+					throw new Error("Unexpected version");
+				}
 				nodes[e.name] = {name: e.name, spaceAvailable: e.spaceAvailable, online: true, address: e.address};
+			} else if( type === NODE_CAPACITY_INCREASE ){
+				const nodeName = e.node;
+				const node = nodes[nodeName] || {name: nodeName, spaceAvailable:0, online:false};
+				node.spaceAvailable = node.spaceAvailable + e.capacity;
+				nodes[nodeName] = node;
 			} else if( type === NODE_OFFLINE ) {
 				if (e.v !== 0) { throw new Error("Unexpected version"); }
 				const nodeName = e.name;
@@ -193,6 +201,10 @@ class NodesEventStore {
 			}
 		});
 		return Object.values(nodes);
+	}
+
+	async nodeByName( name ){
+		return (await this.allNodes()).filter( (node) => node.name == name);
 	}
 
 	async onlineNodes(){
@@ -225,6 +237,24 @@ class NodesEventStore {
 			name,
 			size
 		});
+	}
+
+	async increaseNodeCapacity( node, capacity ){
+		return await this.events.publish({
+			type: NODE_CAPACITY_INCREASE,
+			v:0,
+			node,
+			capacity
+		});
+	}
+
+	async capacityFor( node ){
+		const nodes = await this.nodeByName( node );
+		if( nodes.length < 1 ){
+			return undefined;
+		} else {
+			return nodes[0];
+		}
 	}
 
 	async findAvailableSpace( size ){

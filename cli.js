@@ -111,6 +111,20 @@ const args = yargs
 					logger.info("Nodes", nodes);
 				}
 			})
+			.command("add-capacity <node> <size>", "Adds additional capacity to the given node", (yargs) => {
+				yargs
+					.positional("node", {description: "Node to increase the size of"})
+					.positional("size", {description: "Size in megabytes to increase"})
+					.option("service", {description: "Control Interface to connect to", default: "http://localhost:9977"})
+			}, async (argv) => {
+				const {NodesHTTPClient} = require("./client/nodes");
+				const {formattedConsoleLog} = require("junk-bucket/logging-bunyan");
+
+				const logger = formattedConsoleLog("nodes-list");
+				const client = new NodesHTTPClient(argv.service, logger);
+				const updated = await client.increaseNodeCapacity(argv.node, argv.size * 1024 * 1024);
+				logger.info("Increased node capacity", updated);
+			})
 			.demandCommand(1)
 	})
 	.demandCommand(1)

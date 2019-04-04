@@ -30,6 +30,19 @@ class NodesHTTPClient {
 			throw new Error(e.message);
 		}
 	}
+
+	async increaseNodeCapacity( node, sizeInByte ){
+		const address = this.base + "/nodes/" + node + "/size";
+		try {
+			const result = await request.post({url: address, json: {increaseCapacity: sizeInByte}});
+			return result;
+		}catch(e){
+			if( 404 === e.statusCode) {
+				throw new Error("No such node '"+node+"' or bad URL at " + address);
+			}
+			throw new Error(e.message);
+		}
+	}
 }
 
 module.exports = {
