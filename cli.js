@@ -89,5 +89,29 @@ const args = yargs
 			.option( "metadata-address", {default: "0.0.0.0" } )
 			.option( "metadata-port", {default: 12345})
 	}, runCommand( omniService ) )
-	.demandCommand()
+	.command("nodes", "Operates on nodes", ( yargs) => {
+		yargs
+			.command("list", "Lists currently registered nodes", (yargs) => {
+				yargs
+					.option("service", {description: "Control Interface to connect to", default: "http://localhost:9977"})
+					.option("format", {description: "How to format output {pretty = human, json = machine}", default: "human"})
+			}, async (argv) => {
+				const {NodesHTTPClient} = require("./client/nodes");
+				const {formattedConsoleLog} = require("junk-bucket/logging-bunyan");
+
+				const url = argv.service;
+				const logger = formattedConsoleLog("nodes-list");
+
+				const client = new NodesHTTPClient(url, logger);
+				const nodes = await client.allNodes();
+
+				if( "json" === argv.format){
+					process.stdout.write(JSON.stringify(nodes));
+				}else{
+					logger.info("Nodes", nodes);
+				}
+			})
+			.demandCommand(1)
+	})
+	.demandCommand(1)
 	.argv;
