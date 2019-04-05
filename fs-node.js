@@ -4,6 +4,7 @@ const express = require('express');
 const morgan = require('morgan');
 const {make_async} = require('junk-bucket/express');
 const Future = require('junk-bucket/future');
+const {exists} = require('junk-bucket/fs');
 
 const fs = require('fs');
 const assert = require('assert');
@@ -24,7 +25,11 @@ function http_v1(logger, system, config) {
 		const target =  req.params["name"];
 		// const fileName = config.storage + "/" + target;
 		logger.trace("Requested block ", {name: target});
-		resp.sendFile( target, {root: config.storage} );
+		if( await exists(target)) {
+			resp.sendFile( target, {root: config.storage} );
+		} else {
+			resp.notFound();
+		}
 	});
 
 	app.a_post("/block/:name", async (req, resp) => {
