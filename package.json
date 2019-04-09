@@ -13,19 +13,19 @@
     "body-parser": "1.18.3",
     "bunyan": "1.8.12",
     "express": "4.16.4",
-    "jsonwebtoken": "8.5.0",
+    "jsonwebtoken": "8.5.1",
     "junk-bucket": "1.1.1",
-    "leveldown": "4.0.1",
-    "levelup": "4.0.0",
+    "leveldown": "5.0.1",
+    "levelup": "4.0.1",
     "morgan": "1.9.1",
     "request": "2.88.0",
     "request-promise-native": "1.0.7",
-    "yargs": "13.2.1"
+    "yargs": "13.2.2"
   },
   "devDependencies": {
     "bunyan-format": "0.2.1",
     "chai": "4.2.0",
-    "mocha": "6.0.2",
-    "sinon": "7.2.6"
+    "mocha": "6.1.2",
+    "sinon": "7.3.1"
   }
 }
