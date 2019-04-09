@@ -134,7 +134,9 @@ class EventMetadataStore {
 					});
 					changes.modified.push({container: event.container, key: event.key});
 				} else {
-					changes.created.push({container: event.container, key: event.key});
+					if( !changes.created.some( (element) => element.container === event.container && element.key === event.key ) ){
+						changes.created.push({container: event.container, key: event.key});
+					}
 				}
 			} else  if( TYPE_DELETED === event.type ){
 				//TODO: Be more intelligent about versions
