@@ -104,9 +104,11 @@ describe("For a object backup system", function(){
 
 
 			describe("when a new object is added", function(){
+				const storageContainer = "backup-test";
+				const key = "new-key";
 				beforeEach(async function () {
 					const client = this.harness.client;
-					await client.store_value("backup-test", "new-key", "some new key")
+					await client.store_value(storageContainer, key, "some new key")
 				});
 
 				describe("on the next run", function(){
@@ -119,7 +121,21 @@ describe("For a object backup system", function(){
 					it("has no modified objects", function() { expect(this.changes.modified).to.be.empty; });
 					it("has no deleted objects", function(){ expect(this.changes.destroyed).to.be.empty; });
 					it("reports the new object exists", function(){
-						expect(this.changes.created).to.deep.eq([{container: "backup-test", key: "new-key"}]);
+						expect(this.changes.created).to.deep.eq([{container: storageContainer, key: key}]);
+					});
+				});
+
+				describe("And the object is overwritten", function(){
+					beforeEach(async function(){
+						const client = this.harness.client;
+						await client.store_value(storageContainer, key, "some other value")
+					});
+
+					it("only reports the creation", async function(){
+						const client = this.harness.client;
+						this.incrementalResponse = await client.incrementalBackupChanges(this.result.continuation);
+						this.changes = this.incrementalResponse.changes;
+						expect(this.changes.created).to.deep.eq([{container: storageContainer, key: key}]);
 					});
 				});
 			});
