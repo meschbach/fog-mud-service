@@ -91,11 +91,26 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 		const serviceURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
 		log.info("Requested object storage", {container, key, key_sha256, serviceURL});
 		//TODO: Under many cases I probably don't care about blocking
-		const response = await request.get({
-			url: serviceURL
-		});
-		log.trace("result of remote get", {response});
-		resp.json(response);
+		try {
+			const response = await request.get({
+				url: serviceURL
+			});
+			log.trace("result of remote get", {response});
+			resp.json(response);
+		}catch( e ){
+			if( e.statusCode == 404 ){
+				resp.writeHead(404, "Value not found", {
+					'Content-Type': "text/plain"
+				});
+				resp.end("Value not found");
+			} else {
+				log.error("Failed to retrieve remote value", {reason: e.message});
+				resp.writeHead(502, "Failed to get remote value: " + e.message, {
+					'Content-Type': "text/plain"
+				});
+				resp.end("Failed to get remote value: " + e.message);
+			}
+		}
 	});
 
 	app.a_get("/container/:container/object-stream/*", async (req, resp) => {
@@ -127,34 +142,63 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 			log.trace( "Denying get", {container, key} );
 			return resp.forbidden("Denied");
 		}
+		//Verify incoming request
+		if( !req.body.object ){
+			resp.writeHead(422, "Missing object or falsy", {
+				'Content-Type' : 'text/plain'
+			});
+			resp.end("Missing object in request entity.");
+			return;
+		}
+		const value = JSON.stringify(req.body.object);
+		log.info("Request body",{body:value});
 		//
 		const object_name =  container + ":" + key;
 		const key_sha256 = sha256_from_string( object_name );
 		//TODO: Better default nodes
-		const value = req.body.object;
 		const size = !value ? 0 : value.length;
+		log.info("Searching to store object of size", {size: value.length});
 		const matchingNodes = await nodesStorage.findAvailableSpace(size);
 
 		if( !matchingNodes ){
-			log.warn("No nodes available to store data");
-			resp.status( 503 ).send( "No space available" );
-			return resp.end();
+			resp.writeHead(503, "No space available", {
+				'Content-Type' : 'text/plain'
+			});
+			resp.end("No space available");
+			return;
 		}
 		const service = matchingNodes.address;
 		//TODO: Revisit registration
 		log.info("Using node for ingress storage", {service});
-		const serviceURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
+		const blockURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
 
 		const eventID = await metadataStorage.stored( container, key, key_sha256 );
-		log.info("Completed recording storage event");
+		log.info("Completed recording storage event", {object: req.body.object});
 
-		const result = await request.post({
-			url: serviceURL,
-			body: req.body.object
-		});
-		const momento = await metadataStorage.currentVersion();
-		log.info("Completed storage", {eventID, momento});
-		resp.json({momento});
+		try {
+			log.info("Writing to node", {blockURL});
+			const result = await request.post({
+				url: blockURL,
+				encoding: null,
+				body: value
+			});//TODO: If this returns 500 the result is empty and no error is thrown
+
+			log.info("Storage result: ", result);
+			const momento = await metadataStorage.currentVersion();
+			log.info("Completed storage", {eventID, momento});
+			resp.json({momento});
+		}catch(e){
+			if( e.statusCode != 200 ){
+				const message = "Failed to store object because " + e.message;
+				resp.writeHead(503, message, {
+					'Content-Type' : 'text/plain'
+				});
+				resp.end(message);
+				log.error("Failed to store object", {reason: e.message, object: req.body.object});
+			} else {
+				throw e;
+			}
+		}
 	});
 
 

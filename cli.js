@@ -128,4 +128,5 @@ const args = yargs
 			.demandCommand(1)
 	})
 	.demandCommand(1)
+	.help()
 	.argv;

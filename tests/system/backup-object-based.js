@@ -106,7 +106,7 @@ describe("For a object backup system", function(){
 			describe("when a new object is added", function(){
 				beforeEach(async function () {
 					const client = this.harness.client;
-					await client.store_value("backup-test", "new-key")
+					await client.store_value("backup-test", "new-key", "some new key")
 				});
 
 				describe("on the next run", function(){

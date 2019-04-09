@@ -4,6 +4,7 @@ const express = require('express');
 const morgan = require('morgan');
 const {make_async} = require('junk-bucket/express');
 const Future = require('junk-bucket/future');
+const {promiseEvent} = require("junk-bucket/future");
 const {exists} = require('junk-bucket/fs');
 
 const fs = require('fs');
@@ -17,15 +18,16 @@ function http_v1(logger, system, config) {
 	app.use(morgan('short', {
 		stream: {
 			write: function (message) {
-				logger.info(message);
+				logger.info(message.trim());
 			}
 		}
 	}));
 	app.a_get("/block/:name", async (req, resp) => {
 		const target =  req.params["name"];
-		// const fileName = config.storage + "/" + target;
-		logger.trace("Requested block ", {name: target});
-		if( await exists(target)) {
+		//TODO: Verify the resulting path is under the traget path
+		const fileName = config.storage + "/" + target;
+		logger.trace("Requested block ", {name: target, fileName});
+		if( await exists(fileName)) {
 			resp.sendFile( target, {root: config.storage} );
 		} else {
 			resp.notFound();
@@ -35,19 +37,24 @@ function http_v1(logger, system, config) {
 	app.a_post("/block/:name", async (req, resp) => {
 		const target =  req.params["name"];
 		const fileName = config.storage + "/" + target;
-		logger.trace("Placing block at ", {name: target});
+
+		//Verify incoming object looks valid (TODO: might not be needed)
+		const contentLength = req.headers['content-length'];
+		if( contentLength == 0 ){
+			resp.status(422);
+			resp.statusMessage = "Missing 'Content-Length' or request body";
+			resp.end();
+			return;
+		}
+		logger.info("Placing content ", {contentLength});
+		//Store object
+		logger.info("Placing block at ", {name: target, headers: req.headers, closed: req.ended});
 		const sink = fs.createWriteStream( fileName );
-		sink.on('error', (problem) => {
-			logger.error("Failed to write target", {target, fileName }, problem);
-			resp.status(500);
-			resp.end();
-		});
-		req.on('end', () => {
-			logger.trace("Completed piping data to file", {target, fileName });
-			resp.status(200);
-			resp.end();
-		});
-		req.pipe(sink);
+		const onEnd = promiseEvent(sink, "finish");
+		req.pipe(sink, {end:true});
+		await onEnd;
+		resp.status(204);
+		resp.end();
 	});
 
 	const addressFuture = new Future();

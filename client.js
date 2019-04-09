@@ -14,7 +14,8 @@ class MudHTTPClient {
 		this.baseHeaders["Authorization"] = "Token " + jwt;
 	}
 
-	async store_value( container, key, object ) {
+	async store_value( container, key, object) {
+		if( object === undefined ){ object = null; }
 		try {
 			this.logger.trace("Storing simple value", {key, object});
 			const storage_result = await request.post({
@@ -22,16 +23,17 @@ class MudHTTPClient {
 				headers: Object.assign({
 					'X-Mud-Type': 'Immediate'
 				}, this.baseHeaders),
-				body: {object: object},
-				json: true
+				json: {object}
 			});
 			this.logger.trace("Storage result", {storage_result});
 			return storage_result;
 		}catch(e) {
-			if( e.statusCode == 503 ){
+			if( e.statusCode == 503 ) {
 				throw new Error("Unavailable: " + e.message);
+			} else if( e.statusCode == 500 ){
+				throw new Error("Server error: " + e.message)
 			} else {
-				throw e;
+				throw new Error("Mud client request error: " + e.message);
 			}
 		}
 	}
@@ -44,11 +46,16 @@ class MudHTTPClient {
 
 	async get_value( container, key) {
 		this.logger.trace("Retrieving key", {container, key});
-		const result = JSON.parse(await request.get({
-			url: this.base + "/container/" + container + "/object/" + key
-		}));
-		this.logger.trace("Retrieval instructions", {container, key, result});
-		return result;
+		try {
+			const result = JSON.parse(await request.get({
+				url: this.base + "/container/" + container + "/object/" + key,
+				json: true
+			}));
+			this.logger.trace("Retrieval instructions", {container, key, result});
+			return result;
+		}catch(e){
+			throw new Error("Failed to retrieve value: " + e.message);
+		}
 	}
 
 	stream_from( container, key ){
