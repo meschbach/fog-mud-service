@@ -140,12 +140,13 @@ class MudHTTPClient {
 			} else if( e.statusCode == 500 ){
 				throw new Error("Server error ( "+ e.statusCode + " for " + url + ": '" + e.statusText+ "' )");
 			} else {
-				throw e;
+				throw new Error("Unexpected error communicating with server @ " + url + ": " + e.message);
 			}
 		}
 	}
 
 	async incrementalBackupChanges( momento ){
+		assert( momento );
 		const url = this.base + "/object-backup/" + momento;
 		this.logger.trace("Incremental backup using momento", {momento});
 		const config = {
@@ -164,7 +165,7 @@ class MudHTTPClient {
 			} else if( e.statusCode == 500 ){
 				throw new Error("Server error ( "+ e.statusCode + " for " + url + ": '" + e.statusText+ "' )");
 			} else {
-				throw e;
+				throw new Error("Unexpected error communicating with server @ " + url + ": " + e.message);
 			}
 		}
 	}
