@@ -38,7 +38,7 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 	app.use(morgan('short', {
 		stream: {
 			write: function(message) {
-				morganLogger.info(message);
+				morganLogger.info(message.trim());
 			}
 		}
 	}));
