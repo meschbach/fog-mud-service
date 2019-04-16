@@ -1,5 +1,5 @@
 {
-  "name": "fog-mud",
+  "name": "fog-mud-service",
   "version": "1.2.0",
   "description": "Coordinator for the unstructured data storage",
   "main": "index.js",
