@@ -150,7 +150,7 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 			resp.end("Missing object in request entity.");
 			return;
 		}
-		const value = JSON.stringify(req.body.object);
+		const value = req.body.object;
 		log.info("Request body",{body:value});
 		//
 		const object_name =  container + ":" + key;
@@ -180,7 +180,7 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 			const result = await request.post({
 				url: blockURL,
 				encoding: null,
-				body: value
+				json: value
 			});//TODO: If this returns 500 the result is empty and no error is thrown
 
 			log.info("Storage result: ", result);
@@ -228,13 +228,19 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 		const service = storageNode.address;
 		//TODO: Revisit registration
 		const serviceURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
-		req.pipe(requestStream.post(serviceURL)).on('response', () => {
-			storage.stored( container, key, key_sha256 ).then( () =>{
-				resp.end();
-			}, () => {
-				resp.statusCode = 502;
-				resp.end();
-			});
+		req.pipe(requestStream.post(serviceURL)).on('response', (storageResponse) => {
+			if( storageResponse.statusCode === 204  ){//TOOD: Test
+				storage.stored( container, key, key_sha256 ).then( () =>{
+					resp.end();
+				}, () => {
+					resp.statusCode = 502;
+					resp.end();
+				});
+			} else {
+				log.error("Failed to stream object", {code: storageResponse.statusCode, message: storageResponse.statusMessage});
+				resp.status(503);
+				resp.end(storageResponse.statusMessage);
+			}
 		}).on('end', () => {
 			log.trace("Completed streaming", {container, key});
 		});

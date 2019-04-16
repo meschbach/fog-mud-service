@@ -38,15 +38,6 @@ function http_v1(logger, system, config) {
 		const target =  req.params["name"];
 		const fileName = config.storage + "/" + target;
 
-		//Verify incoming object looks valid (TODO: might not be needed)
-		const contentLength = req.headers['content-length'];
-		if( contentLength == 0 ){
-			resp.status(422);
-			resp.statusMessage = "Missing 'Content-Length' or request body";
-			resp.end();
-			return;
-		}
-		logger.info("Placing content ", {contentLength});
 		//Store object
 		logger.info("Placing block at ", {name: target, headers: req.headers, closed: req.ended});
 		const sink = fs.createWriteStream( fileName );
