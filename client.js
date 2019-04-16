@@ -47,14 +47,19 @@ class MudHTTPClient {
 	async get_value( container, key) {
 		this.logger.trace("Retrieving key", {container, key});
 		try {
-			const result = JSON.parse(await request.get({
+			const responseEntity = await request.get({
 				url: this.base + "/container/" + container + "/object/" + key,
 				json: true
-			}));
+			});
+			const result = JSON.parse(responseEntity);
 			this.logger.trace("Retrieval instructions", {container, key, result});
 			return result;
 		}catch(e){
-			throw new Error("Failed to retrieve value: " + e.message);
+			if( e.statusCode === 404){
+				throw new Error("No such key '" + key + "' in container '" + container + "'");
+			} else {
+				throw new Error("Failed to retrieve value because: " + e.message);
+			}
 		}
 	}
 
