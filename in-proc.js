@@ -2,11 +2,7 @@
  * An in-process version of the system.  Intended to provide a reasonable level of service for the system suitable for
  * testing components.  These tests aren't concerned with the security layer and will not configure them.
  */
-const os = require("os");
 const path = require("path");
-
-//TODO: These are good candidates to move to the junk drawer
-const { fs_mkdtemp, fs_mkdir } = require("./junk");
 
 const {http_v1} = require("./metadata");
 const {MudHTTPClient} = require("./client");
