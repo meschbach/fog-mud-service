@@ -1,8 +1,7 @@
 const {newTemporaryLevelStore, LevelUpEventStore} = require("../../junk/event-store-level");
 
 const {expect} = require("chai");
-const {Context} = require("../../junk");
-const {parallel} = require("junk-bucket/future");
+const {Context} = require("junk-bucket/context");
 const {createTestLogger} = require("../system/test-junk");
 const {contextTemporaryDirectory} = require("junk-bucket/fs");
 const {openLevelDB} = require("../../junk/leveldb");

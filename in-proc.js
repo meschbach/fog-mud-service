@@ -8,7 +8,7 @@ const {http_v1} = require("./metadata");
 const {MudHTTPClient} = require("./client");
 const {fsNodeStorage, CoordinatorHTTPClient} = require("./fs-node");
 
-const {Context} = require("./junk");
+const {Context} = require("junk-bucket/context");
 const {contextTemporaryDirectory} = require("junk-bucket/fs");
 const {openLevelDB} = require("./junk/leveldb");
 const {LevelUpEventStore} = require("./junk/event-store-level");

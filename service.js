@@ -4,7 +4,7 @@ const {openLevelDB} = require("./junk/leveldb");
 const {EventMetadataStore, NodesEventStore} = require("./metadata/data-store");
 
 const {main} = require('junk-bucket');
-const {Context} = require("./junk");
+const {Context} = require("junk-bucket/context");
 const {http_v1} = require('./metadata');
 const {formattedConsoleLog} = require("junk-bucket/logging-bunyan");
 
