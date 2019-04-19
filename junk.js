@@ -23,7 +23,6 @@ const {makeTempDir, mkdir, mkdtemp, rmRecursively} = require("junk-bucket/fs");
 /***********************************************************************************************************************
  * Level Database
  **********************************************************************************************************************/
-const os = require("os");
 
 const levelup = require('levelup');
 const leveldown = require('leveldown');
@@ -54,6 +53,43 @@ async function level_forEachKey( db, onKey ){
 	}), 'end');
 }
 
+/**********************************************************
+ * Express
+ **********************************************************/
+const morgan = require("morgan");
+function logMorganTo(logger){
+	return morgan('short', {
+		stream: {
+			write: function (message) {
+				logger.info(message.trim());
+			}
+		}
+	})
+}
+
+/**********************************************************
+ * Streams
+ **********************************************************/
+const {PassThrough} = require("stream");
+
+class FinishOnResolve extends PassThrough {
+	constructor(response, onFlush) {
+		super();
+		this._response = response;
+		this._onFlush = onFlush;
+	}
+
+	_flush(callback) {
+		this._onFlush();
+		this._response.then(
+			() => {
+				callback()
+			},
+			(problem) => callback(problem)
+		);
+	}
+}
+
 /***********************************************************************************************************************
  * Exports
  **********************************************************************************************************************/
@@ -64,5 +100,8 @@ module.exports = {
 	fs_mkdtemp: mkdtemp,
 
 	level_mktemp,
-	level_forEachKey
+	level_forEachKey,
+
+	logMorganTo,
+	FinishOnResolve
 };
