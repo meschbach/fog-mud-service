@@ -41,11 +41,14 @@ class NodeHTTPV1 {
 		const completion = new Future();
 		const query = request(opts);
 		query.on("response", (response) => {
-			if( response.statusCode == 404 ){
-				completion.reject(new Error("Blob " + blob + " was not found."));
-			} else {
+			const statusCode = response.statusCode;
+			if( statusCode == 200 ) {
 				response.pause();
 				completion.accept(response);
+			} else if( statusCode == 404 ){
+				completion.reject(new Error("Blob " + blob + " was not found."));
+			} else {
+				completion.reject(new Error("Unknown error: " + e.message));
 			}
 		});
 		query.on("error", function(problem){
