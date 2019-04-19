@@ -90,6 +90,42 @@ class FinishOnResolve extends PassThrough {
 	}
 }
 
+
+/**********************************************************
+ * streaming requests
+ **********************************************************/
+const Future = require("junk-bucket/future");
+const request = require("request");
+
+/**
+ * Blocks a request entity from being considered complete until response headers have been received and interpreted.
+ * This is helpful for streaming entities of unknown sizes.
+ *
+ * @param opts request options
+ * @param interpretResponse a possibly async function to interpret the response body
+ * @returns {Writable} a writable which will not finish until the response is received and interpreted
+ */
+function streamRequestEntity( opts, interpretResponse ) {
+	const query = request(opts);
+	const responseCompletion = new Future();
+	query.on("response", function (response) {
+		interpretResponse(response, responseCompletion)
+			.then( function(){
+				if(!responseCompletion.resolved) {
+					responseCompletion.accept();
+				}
+			}, function (problem) {
+				if(!responseCompletion.resolved) {
+					responseCompletion.reject(problem);
+				}
+			});
+	});
+	const gate = new FinishOnResolve(responseCompletion.promised, () => query.end());
+	gate.pipe(query);
+	return gate;
+}
+
+
 /***********************************************************************************************************************
  * Exports
  **********************************************************************************************************************/
@@ -103,5 +139,6 @@ module.exports = {
 	level_forEachKey,
 
 	logMorganTo,
-	FinishOnResolve
+	FinishOnResolve,
+	streamRequestEntity
 };

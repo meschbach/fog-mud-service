@@ -24,7 +24,7 @@ function http_v1( context, vfs ) {
 	return router;
 }
 
-const {FinishOnResolve} = require("../junk");
+const {streamRequestEntity} = require("../junk");
 const request = require("request");
 const Future = require("junk-bucket/future");
 class NodeHTTPV1 {
@@ -60,18 +60,11 @@ class NodeHTTPV1 {
 			method: "POST",
 			url: this.address + "/block/" + blob
 		};
-		const query = request(opts);
-		const responseCompletion = new Future();
-		query.on("response", function (response) {
+		return streamRequestEntity(opts, async (response) =>{
 			if( response.statusCode != 204 ){
-				responseCompletion.reject(new Error("Unexpected response status code " + response.statusCode));
-			} else {
-				responseCompletion.accept();
+				throw new Error("Unexpected response status code " + response.statusCode);
 			}
 		});
-		const gate = new FinishOnResolve(responseCompletion.promised, () => query.end());
-		gate.pipe(query);
-		return gate;
 	}
 }
 
