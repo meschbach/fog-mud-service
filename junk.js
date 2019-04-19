@@ -126,6 +126,96 @@ function streamRequestEntity( opts, interpretResponse ) {
 }
 
 
+/**********************************************************
+ *
+ **********************************************************/
+const path = require("path");
+
+function jailedPath( root, relative ){
+	const relativeNormalized = path.normalize(relative);
+	const resolvedPath = path.resolve(root, relativeNormalized);
+	const relativeResult = path.relative(root, resolvedPath);
+	const actualParts = relativeResult.split(path.sep).filter((c) => c != "..");
+	return [root].concat(actualParts).join(path.sep);
+}
+
+
+/**********************************************************
+ *
+ **********************************************************/
+class JailedVFS {
+	constructor(root, vfs) {
+		this.root = root;
+		this.vfs = vfs;
+	}
+
+	async exists( file ){
+		const fileName = jailedPath(this.root, file);
+		return await this.vfs.exists(fileName);
+	}
+
+	async unlink( file ){
+		const fileName = jailedPath(this.root, file);
+		return await this.vfs.unlink(fileName);
+	}
+
+	async createReadableStream( file ){
+		const fileName = jailedPath(this.root, file);
+		return await this.vfs.createReadableStream(fileName);
+	}
+
+	async asBytes( file ){
+		const fileName = jailedPath(this.root, file);
+		return await this.vfs.asBytes(fileName);
+	}
+
+	async putBytes( file, bytes, encoding ){
+		const fileName = jailedPath(this.root, file);
+		return await this.vfs.putBytes(fileName);
+	}
+
+	async createWritableStream( file ){
+		const fileName = jailedPath(this.root, file);
+		return await this.vfs.createWritableStream(fileName);
+	}
+}
+
+const fs = require("fs");
+const {
+	exists,
+	unlink,
+	readFile
+} = require("junk-bucket/fs");
+
+const {promisify} = require("util");
+const writeFile = promisify(fs.writeFile);
+
+class LocalFileSystem {
+	async exists( file ){
+		return await exists(file);
+	}
+
+	async unlink( file ){
+		return await unlink(file);
+	}
+
+	async createReadableStream( file ){
+		return fs.createReadStream(file);
+	}
+
+	async createWritableStream( file ){
+		return fs.createWriteStream(file);
+	}
+
+	async asBytes( file ){
+		return await readFile( file );
+	}
+
+	async putBytes( file, bytes, encoding ){
+		await writeFile(file, bytes, {encoding});
+	}
+}
+
 /***********************************************************************************************************************
  * Exports
  **********************************************************************************************************************/
@@ -140,5 +230,9 @@ module.exports = {
 
 	logMorganTo,
 	FinishOnResolve,
-	streamRequestEntity
+	streamRequestEntity,
+
+	jailedPath,
+	JailedVFS,
+	LocalFileSystem
 };

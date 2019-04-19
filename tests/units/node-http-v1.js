@@ -40,7 +40,7 @@ const {logMorganTo} = require("../../junk");
 const {delay} = require("junk-bucket/future");
 describe("node http_v1 routes", function () {
 	it("404s if the block name isn't given", async function(){
-		const rootContext = new Context("node:http_v1", createTestLogger("node:http_v1", true));
+		const rootContext = new Context("node:http_v1", createTestLogger("node:http_v1", false));
 		try {
 			const vfs = new InMemoryVFS();
 			const router = http_v1(rootContext, vfs);
@@ -65,7 +65,7 @@ describe("node http_v1 routes", function () {
 	});
 
 	it("may stream and recall blobs", async function(){
-		const rootContext = new Context("node:http_v1", createTestLogger("node:http_v1", true));
+		const rootContext = new Context("node:http_v1", createTestLogger("node:http_v1", false));
 		try {
 			const vfs = new InMemoryVFS();
 			const router = http_v1(rootContext, vfs);
