@@ -62,7 +62,7 @@ function http_v1(logger, system, config) {
 	}
 }
 
-const { CoordinatorHTTPClient } = require("metadata/coordinator");
+const { CoordinatorHTTPClient } = require("./metadata/coordinator");
 
 if( require && require.main == module ){
 	const {main} = require('junk-bucket');
