@@ -44,6 +44,13 @@ const {buildNodesHTTPv1} = require("./metadata/http-nodes");
 const {objectBackupHTTP} = require('./metadata/object-backup');
 const {NodeHTTPV1} = require("./node/http-v1");
 
+/**********************************************************
+ * Internal things which should be moved
+ **********************************************************/
+function nodeURLFromSpec( spec ){
+	return "http://" + spec.host + ":" + spec.port;
+}
+
 /***********************************************************************************************************************
  * Implementation
  **********************************************************************************************************************/
@@ -109,8 +116,7 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 		}
 		const service = onlineNode.address;
 		//TODO: Revisit design, should support getting a number of blocks too
-		// const serviceURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
-		const nodeURL = "http://" +service.host + ":" + service.port;
+		const nodeURL = nodeURLFromSpec(service);
 		const clientV1 = new NodeHTTPV1(nodeURL);
 		log.info("Requested object storage", {container, key, key_sha256, nodeURL});
 		//TODO: Under many cases I probably don't care about blocking
@@ -191,14 +197,14 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 		const service = matchingNodes.address;
 		//TODO: Revisit registration
 		log.info("Using node for ingress storage", {service});
-		const nodeURL = "http://" + service.host + ":" + service.port;
+		const nodeURL = nodeURLFromSpec(service);
+		const v1Client = new NodeHTTPV1(nodeURL);
 
 		const eventID = await metadataStorage.stored( container, key, key_sha256 );
 		log.info("Completed recording storage event", {object: req.body.object});
 
 		try {
 			log.info("Writing to node", {nodeURL});
-			const v1Client = new NodeHTTPV1(nodeURL);
 			await putJSONAsBytes(v1Client, key_sha256, value);
 
 			log.info("Storage result: ", result);
