@@ -8,6 +8,7 @@ const {MudHTTPClient} = require("../../client");
 const {expect} = require("chai");
 
 const {promiseEvent} = require("junk-bucket/future");
+const {delay} = require("junk-bucket/future");
 
 async function newMetadataNode( parentContext ){
 	const context = parentContext.subcontext("metadata");
@@ -60,7 +61,7 @@ describe( "Given an instance of the system without nodes", function() {
 		this.controlPlane = controlPlane;
 	});
 	afterEach(async function(){
-		this.context.cleanup()
+		await this.context.cleanup()
 	});
 
 	describe("When asked to store an object", function(){
@@ -72,7 +73,7 @@ describe( "Given an instance of the system without nodes", function() {
 			}catch(e){
 				//Passed
 			}
-			expect(threw).to.be.true;
+			expect(threw).to.be.eq(true);
 		});
 	});
 

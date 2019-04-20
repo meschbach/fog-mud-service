@@ -8,13 +8,33 @@ const express = require('express');
 const morgan = require('morgan');
 const {make_async} = require('junk-bucket/express');
 const Future = require('junk-bucket/future');
-const promiseEvent = Future.promiseEvent;
+const {EchoOnReceive, promisePiped} = require('junk-bucket/streams');
 
 const bodyParser = require('body-parser');
 const request = require('request-promise-native');
 const requestStream = require('request');
 
-const {sha256_from_string} = require("./junk");
+const {sha256_from_string, endStream} = require("./junk");
+
+const {delay} = require("junk-bucket/future");
+const {promiseEvent} = require("junk-bucket/future");
+
+/***********************************************************************************************************************
+ * TODO: Junk to be moved
+ **********************************************************************************************************************/
+async function putBytes(vfs, name, buffer) {
+	if( vfs.putBytes ){
+		await vfs.putBytes(name,buffer);
+	} else {
+		const output = vfs.createWritableStream(name);
+		await endStream(output, buffer);
+	}
+}
+
+async function putJSONAsBytes(vfs,name, object) {
+	const jsonString = JSON.stringify(object);
+	return await putBytes(vfs,name, jsonString);
+}
 
 /***********************************************************************************************************************
  * Internal Dependencies
@@ -22,6 +42,7 @@ const {sha256_from_string} = require("./junk");
 const {buildAuthorizationEngine} = require('./security');
 const {buildNodesHTTPv1} = require("./metadata/http-nodes");
 const {objectBackupHTTP} = require('./metadata/object-backup');
+const {NodeHTTPV1} = require("./node/http-v1");
 
 /***********************************************************************************************************************
  * Implementation
@@ -88,15 +109,15 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 		}
 		const service = onlineNode.address;
 		//TODO: Revisit design, should support getting a number of blocks too
-		const serviceURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
-		log.info("Requested object storage", {container, key, key_sha256, serviceURL});
+		// const serviceURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
+		const nodeURL = "http://" +service.host + ":" + service.port;
+		const clientV1 = new NodeHTTPV1(nodeURL);
+		log.info("Requested object storage", {container, key, key_sha256, nodeURL});
 		//TODO: Under many cases I probably don't care about blocking
 		try {
-			const response = await request.get({
-				url: serviceURL
-			});
-			log.trace("result of remote get", {response});
-			resp.json(response);
+			const input = await clientV1.createReadableStream(key_sha256);
+			resp.writeHead(200, "OK", {'Content-Type':"application/json"});
+			await promisePiped(input, resp);
 		}catch( e ){
 			if( e.statusCode == 404 ){
 				resp.writeHead(404, "Value not found", {
@@ -170,18 +191,15 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 		const service = matchingNodes.address;
 		//TODO: Revisit registration
 		log.info("Using node for ingress storage", {service});
-		const blockURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
+		const nodeURL = "http://" + service.host + ":" + service.port;
 
 		const eventID = await metadataStorage.stored( container, key, key_sha256 );
 		log.info("Completed recording storage event", {object: req.body.object});
 
 		try {
-			log.info("Writing to node", {blockURL});
-			const result = await request.post({
-				url: blockURL,
-				encoding: null,
-				json: value
-			});//TODO: If this returns 500 the result is empty and no error is thrown
+			log.info("Writing to node", {nodeURL});
+			const v1Client = new NodeHTTPV1(nodeURL);
+			await putJSONAsBytes(v1Client, key_sha256, value);
 
 			log.info("Storage result: ", result);
 			const momento = await metadataStorage.currentVersion();

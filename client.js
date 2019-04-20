@@ -51,9 +51,7 @@ class MudHTTPClient {
 				url: this.base + "/container/" + container + "/object/" + key,
 				json: true
 			});
-			const result = JSON.parse(responseEntity);
-			this.logger.trace("Retrieval instructions", {container, key, result});
-			return result;
+			return responseEntity;
 		}catch(e){
 			if( e.statusCode === 404){
 				throw new Error("No such key '" + key + "' in container '" + container + "'");

@@ -90,6 +90,12 @@ class FinishOnResolve extends PassThrough {
 	}
 }
 
+async function endStream( stream, lastChunk ){
+	const done = promiseEvent(stream, "end");
+	stream.end(lastChunk);
+	await done;
+}
+
 
 /**********************************************************
  * streaming requests
@@ -119,6 +125,9 @@ function streamRequestEntity( opts, interpretResponse ) {
 					responseCompletion.reject(problem);
 				}
 			});
+		response.on("close", () => {
+			gate.emit("end");
+		})
 	});
 	const gate = new FinishOnResolve(responseCompletion.promised, () => query.end());
 	gate.pipe(query);
@@ -231,6 +240,7 @@ module.exports = {
 	logMorganTo,
 	FinishOnResolve,
 	streamRequestEntity,
+	endStream,
 
 	jailedPath,
 	JailedVFS,

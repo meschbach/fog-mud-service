@@ -22,12 +22,6 @@ async function listen(context, server){
 	return address.host + ":" + address.port;
 }
 
-async function endStream( stream, lastChunk ){
-	const done = promiseEvent(stream, "finish");
-	stream.end(lastChunk);
-	await done;
-}
-
 const {EchoOnReceive} = require("junk-bucket/streams");
 async function streamAsBuffer( source ){
 	const target = new MemoryWritable();
@@ -36,8 +30,8 @@ async function streamAsBuffer( source ){
 }
 
 const express = require("express");
-const {logMorganTo} = require("../../junk");
-const {delay} = require("junk-bucket/future");
+const {logMorganTo, endStream} = require("../../junk");
+
 describe("node http_v1 routes", function () {
 	it("404s if the block name isn't given", async function(){
 		const rootContext = new Context("node:http_v1", createTestLogger("node:http_v1", false));

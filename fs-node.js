@@ -10,18 +10,22 @@ const {exists} = require('junk-bucket/fs');
 const fs = require('fs');
 const assert = require('assert');
 
+const storageAPI = require("./node/http-v1");
+const {Context} = require("junk-bucket/context");
+const {logMorganTo, JailedVFS, LocalFileSystem} = require("./junk");
+
 function http_v1(logger, system, config) {
 	assert(config.storage, "Storage not defined.");
+	const localFS = new LocalFileSystem();
+	const jailRoot = config.storage;
+	const jailedFS = new JailedVFS(jailRoot, localFS);
 
-	const blocks = {};
+	const rootContext = new Context("fs-node", logger);
+
 	const app = make_async(express());
-	app.use(morgan('short', {
-		stream: {
-			write: function (message) {
-				logger.info(message.trim());
-			}
-		}
-	}));
+	app.use(logMorganTo(logger));
+	// app.use(storageAPI.http_v1(rootContext, jailedFS));
+
 	app.a_get("/block/:name", async (req, resp) => {
 		const target =  req.params["name"];
 		//TODO: Verify the resulting path is under the traget path
@@ -53,11 +57,14 @@ function http_v1(logger, system, config) {
 		logger.info("HTTP listener bound on ", server.address());
 		addressFuture.accept(server.address());
 	});
+	const closedSocketPromise = promiseEvent(server,"close");
+	closedSocketPromise.then(() => {}, () => {}); //TODO: Prevent leaking promise complaints, better way to do this?
 
 	return {
 		address: addressFuture.promised,
-		end: function () {
+		end: async function () {
 			server.close();
+			await closedSocketPromise;
 		}
 	}
 }
