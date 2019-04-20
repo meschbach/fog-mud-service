@@ -155,10 +155,12 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 		const node = (await nodesStorage.allNodes())[0];
 		const service = node.address;
 		//TODO: Revisit design, should support getting a number of blocks too
-		const serviceURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
-		log.info("Requested object storage", {container, key, key_sha256, serviceURL});
-		//TODO: Under many cases I probably don't care about blocking
-		requestStream(serviceURL).pipe(resp);
+		const storageNodeURL = nodeURLFromSpec(service);
+		const storageClient = new NodeHTTPV1(storageNodeURL);
+
+		const storageBlock = await storageClient.createReadableStream(key_sha256);
+		resp.statusCode = 200;
+		await promisePiped(storageBlock, resp);
 	});
 
 	app.a_post("/container/:container/object/*", async (req, resp) => {
