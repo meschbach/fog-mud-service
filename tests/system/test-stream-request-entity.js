@@ -73,7 +73,7 @@ describe("streamRequestEntity", function(){
 				const url = "http://" + address + "/test";
 				context.logger.info("Requesting", url);
 				const entityStream = await streamRequestEntity({url, method: "POST"}, async (resp) => {
-					await delay(100);
+					await delay(1);
 					throw new Error();
 				});
 				const example = Buffer.from("learn your lesson well", "utf-8");
