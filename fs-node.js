@@ -23,33 +23,7 @@ function http_v1(logger, system, config) {
 
 	const app = make_async(express());
 	app.use(logMorganTo(logger));
-	// app.use(storageAPI.http_v1(rootContext, jailedFS));
-
-	app.a_get("/block/:name", async (req, resp) => {
-		const target =  req.params["name"];
-		//TODO: Verify the resulting path is under the traget path
-		const fileName = config.storage + "/" + target;
-		logger.trace("Requested block ", {name: target, fileName});
-		if( await exists(fileName)) {
-			resp.sendFile( target, {root: config.storage} );
-		} else {
-			resp.notFound();
-		}
-	});
-
-	app.a_post("/block/:name", async (req, resp) => {
-		const target =  req.params["name"];
-		const fileName = config.storage + "/" + target;
-
-		//Store object
-		logger.info("Placing block at ", {name: target, headers: req.headers, closed: req.ended});
-		const sink = fs.createWriteStream( fileName );
-		const onEnd = promiseEvent(sink, "finish");
-		req.pipe(sink, {end:true});
-		await onEnd;
-		resp.status(204);
-		resp.end();
-	});
+	app.use(storageAPI.http_v1(rootContext, jailedFS));
 
 	const addressFuture = new Future();
 	const server = app.listen( config.port, '127.0.0.1', () => {
