@@ -6,7 +6,8 @@ const path = require("path");
 
 const {http_v1} = require("./metadata");
 const {MudHTTPClient} = require("./client");
-const {fsNodeStorage, CoordinatorHTTPClient} = require("./fs-node");
+const {fsNodeStorage} = require("./fs-node");
+const {CoordinatorHTTPClient} = require("./metadata/coordinator");
 
 const {Context} = require("junk-bucket/context");
 const {contextTemporaryDirectory} = require("junk-bucket/fs");

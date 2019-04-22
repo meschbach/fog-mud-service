@@ -8,6 +8,8 @@ const {http_v1} = require("../../metadata");
 const {MudHTTPClient} = require("../../client");
 const {expect} = require("chai");
 
+const {CoordinatorHTTPClient} = require("../../metadata/coordinator");
+
 const {promiseEvent} = require("junk-bucket/future");
 const {delay} = require("junk-bucket/future");
 
@@ -38,7 +40,7 @@ async function newMetadataNode( parentContext ){
 }
 
 const {contextTemporaryDirectory} = require("junk-bucket/fs");
-const {fsNodeStorage, CoordinatorHTTPClient} = require("../../fs-node");
+const {fsNodeStorage} = require("../../fs-node");
 async function newFileSystemStorage( parentContext ){
 	const context = parentContext.subcontext("metadata");
 	const dir = await contextTemporaryDirectory(context, "fs-node");

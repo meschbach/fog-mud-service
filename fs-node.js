@@ -1,12 +1,7 @@
-const bunyan = require('bunyan');
-
 const express = require('express');
 const {make_async} = require('junk-bucket/express');
 const Future = require('junk-bucket/future');
 const {promiseEvent} = require("junk-bucket/future");
-const {exists} = require('junk-bucket/fs');
-
-const fs = require('fs');
 const assert = require('assert');
 
 const storageAPI = require("./node/http-v1");
@@ -62,7 +57,6 @@ if( require && require.main == module ){
 	}, formattedConsoleLog("fs-storage"));
 } else {
 	module.exports = {
-		fsNodeStorage: http_v1,
-		CoordinatorHTTPClient: CoordinatorHTTPClient
+		fsNodeStorage: http_v1
 	}
 }

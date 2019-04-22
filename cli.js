@@ -18,7 +18,8 @@ const levelup = require("levelup");
 const leveldown = require("leveldown");
 const {MudHTTPClient} = require("./client");
 
-const {fsNodeStorage, CoordinatorHTTPClient} = require("./fs-node");
+const {fsNodeStorage} = require("./fs-node");
+const {CoordinatorHTTPClient} = require("./metadata/coordinator");
 
 const fs = require("fs");
 const {fs_mkdir} = require("./junk");
