@@ -12,7 +12,7 @@ const {promisePiped} = require('junk-bucket/streams');
 
 const bodyParser = require('body-parser');
 
-const {sha256_from_string, endStream} = require("./junk");
+const {sha256_from_string, endStream, logMorganTo} = require("./junk");
 
 /***********************************************************************************************************************
  * TODO: Junk to be moved
@@ -57,14 +57,8 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 	const securityLayer = await buildAuthorizationEngine( config, log.child({layer: "security"}) );
 
 	const app = make_async(express());
-	const morganLogger = log.child({component:"http/morgan"});
-	app.use(morgan('short', {
-		stream: {
-			write: function(message) {
-				morganLogger.info(message.trim());
-			}
-		}
-	}));
+	const httpLogger = log.child({component:"http"});
+	app.use(logMorganTo(httpLogger));
 	app.use(bodyParser.json());
 
 	app.a_get("/container/:container", async (req, resp) => {
