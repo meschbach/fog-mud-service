@@ -8,16 +8,11 @@ const express = require('express');
 const morgan = require('morgan');
 const {make_async} = require('junk-bucket/express');
 const Future = require('junk-bucket/future');
-const {EchoOnReceive, promisePiped} = require('junk-bucket/streams');
+const {promisePiped} = require('junk-bucket/streams');
 
 const bodyParser = require('body-parser');
-const request = require('request-promise-native');
-const requestStream = require('request');
 
 const {sha256_from_string, endStream} = require("./junk");
-
-const {delay} = require("junk-bucket/future");
-const {promiseEvent} = require("junk-bucket/future");
 
 /***********************************************************************************************************************
  * TODO: Junk to be moved
