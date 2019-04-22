@@ -190,6 +190,7 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 		const matchingNodes = await nodesStorage.findAvailableSpace(size);
 
 		if( !matchingNodes ){
+			log.warn("Insufficient space found for storage", {size, matchingNodes} );
 			resp.writeHead(503, "No space available", {
 				'Content-Type' : 'text/plain'
 			});
@@ -253,23 +254,14 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 		const storageNode = matchingNode;
 		const service = storageNode.address;
 		//TODO: Revisit registration
-		const serviceURL = "http://" +service.host + ":" + service.port + "/block/" + key_sha256;
-		req.pipe(requestStream.post(serviceURL)).on('response', (storageResponse) => {
-			if( storageResponse.statusCode === 204  ){//TOOD: Test
-				storage.stored( container, key, key_sha256 ).then( () =>{
-					resp.end();
-				}, () => {
-					resp.statusCode = 502;
-					resp.end();
-				});
-			} else {
-				log.error("Failed to stream object", {code: storageResponse.statusCode, message: storageResponse.statusMessage});
-				resp.status(503);
-				resp.end(storageResponse.statusMessage);
-			}
-		}).on('end', () => {
-			log.trace("Completed streaming", {container, key});
-		});
+		const storageClientURL = nodeURLFromSpec(service);
+		const client = new NodeHTTPV1(storageClientURL);
+
+		const sink = await client.createWritableStream(key_sha256);
+		await promisePiped(req, sink);
+		await storage.stored( container, key, key_sha256 );
+		resp.statusCode = 204;
+		resp.end();
 	});
 
 	app.a_delete("/container/:container/object/*", async function(req, resp) {

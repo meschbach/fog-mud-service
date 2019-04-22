@@ -1,7 +1,6 @@
 const bunyan = require('bunyan');
 
 const express = require('express');
-const morgan = require('morgan');
 const {make_async} = require('junk-bucket/express');
 const Future = require('junk-bucket/future');
 const {promiseEvent} = require("junk-bucket/future");

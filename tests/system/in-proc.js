@@ -1,6 +1,7 @@
 const {inPorcessService} = require("../../in-proc");
 const assert = require("assert");
 const {parallel} = require("junk-bucket/future");
+const {promisePiped} = require("junk-bucket/streams");
 
 const fs = require('fs');
 
@@ -58,12 +59,12 @@ describe( "In process harness", function() {
 			const client = handler.client;
 			const streamingOut = client.stream_to( container, key );
 			const source = fs.createReadStream( sourceFile );
-			source.pipe(streamingOut);
-			await promiseEvent(source, 'end');
+			await promisePiped(source,streamingOut);
 
 			const streamIn = client.stream_from( container, key );
+			const streamDone = promiseEvent(streamIn, "end");
 			const storedHash = digestStream(streamIn);
-			await promiseEvent(streamIn, 'end');
+			await streamDone;
 			assert.equal( storedHash, sourceHash );
 		}finally{
 			handler.stop();

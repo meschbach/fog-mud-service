@@ -91,7 +91,7 @@ class FinishOnResolve extends PassThrough {
 }
 
 async function endStream( stream, lastChunk ){
-	const done = promiseEvent(stream, "end");
+	const done = promiseEvent(stream, "finish");
 	stream.end(lastChunk);
 	await done;
 }
@@ -102,6 +102,8 @@ async function endStream( stream, lastChunk ){
  **********************************************************/
 const Future = require("junk-bucket/future");
 const request = require("request");
+const http = require("http");
+const {MemoryWritable} = require("junk-bucket/streams");
 
 /**
  * Blocks a request entity from being considered complete until response headers have been received and interpreted.
@@ -112,26 +114,24 @@ const request = require("request");
  * @returns {Writable} a writable which will not finish until the response is received and interpreted
  */
 function streamRequestEntity( opts, interpretResponse ) {
-	const query = request(opts);
-	const responseCompletion = new Future();
-	query.on("response", function (response) {
-		interpretResponse(response, responseCompletion)
-			.then( function(){
-				if(!responseCompletion.resolved) {
-					responseCompletion.accept();
-				}
-			}, function (problem) {
-				if(!responseCompletion.resolved) {
-					responseCompletion.reject(problem);
-				}
-			});
-		response.on("close", () => {
-			gate.emit("end");
-		})
+	//TODO: I would really like streaming here.  Eventually maybe we'll find a way to do it.
+	const buffer = new MemoryWritable();
+	buffer.on("finish", () => {
+		const newOpts = Object.assign({}, opts, {body: buffer.bytes});
+		const call = request(newOpts);
+		call.on("response", (resp) => {
+			try {
+				Promise.resolve(interpretResponse(resp))
+					.then(
+						() => buffer.emit("close"),
+						(p) => buffer.emit("error",p)
+					);
+			}catch( e ){
+				buffer.emit("error", e);
+			}
+		});
 	});
-	const gate = new FinishOnResolve(responseCompletion.promised, () => query.end());
-	gate.pipe(query);
-	return gate;
+	return buffer;
 }
 
 

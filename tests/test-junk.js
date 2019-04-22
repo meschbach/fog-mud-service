@@ -32,6 +32,30 @@ class MemoryEventStore {
 	}
 }
 
+const {addressOnListen} = require("junk-bucket/sockets");
+async function listen(context, server){
+	const result = addressOnListen(server);
+	result.socket.on("close", function(){
+		context.logger.trace("Server socket closed");
+	});
+	context.onCleanup(() => {
+		context.logger.trace("Cleaning up server",{address});
+		result.stop();
+	});
+	const address = await result.address;
+	context.logger.trace("Server bound to",{address});
+	return address.host + ":" + address.port;
+}
+
+const {Context} = require("junk-bucket/context");
+const {createTestLogger} = require("./system/test-junk");
+
+function testContext( name, debug ){
+	return new Context(name, createTestLogger(name, debug));
+}
+
 module.exports = {
-	MemoryEventStore
+	MemoryEventStore,
+	listen,
+	testContext
 };

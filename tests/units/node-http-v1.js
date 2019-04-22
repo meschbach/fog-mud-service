@@ -12,15 +12,7 @@ const {http_v1, NodeHTTPV1} = require("../../node/http-v1");
 /*
  * Junk Candidates
  */
-const {addressOnListen} = require("junk-bucket/sockets");
-async function listen(context, server){
-	const result = addressOnListen(server);
-	context.onCleanup(() => {
-		result.stop();
-	});
-	const address = await result.address;
-	return address.host + ":" + address.port;
-}
+const {listen} = require("../test-junk");
 
 const {EchoOnReceive} = require("junk-bucket/streams");
 async function streamAsBuffer( source ){

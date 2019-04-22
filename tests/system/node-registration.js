@@ -1,5 +1,6 @@
 const {createTestLogger} = require("./test-junk");
 const {Context} = require("junk-bucket/context");
+const {endStream} = require("../../junk");
 const {newTemporaryLevelDB} = require("../../junk/leveldb");
 const {LevelUpEventStore} = require("../../junk/event-store-level");
 const {EventMetadataStore, NodesEventStore} = require('../../metadata/data-store');
@@ -61,17 +62,18 @@ describe( "Given an instance of the system without nodes", function() {
 		this.controlPlane = controlPlane;
 	});
 	afterEach(async function(){
+		await delay(5); //TODO: Figure out the sync issue (min: 5ms) [ECONNRESET from service socket]
 		await this.context.cleanup()
 	});
 
 	describe("When asked to store an object", function(){
 		it("refuses", async function () {
-			let threw = true;
+			let threw;
 			try {
 				await this.metadata.store_value( "test", "key","is going to fail");
 				threw = false;
 			}catch(e){
-				//Passed
+				threw = true;
 			}
 			expect(threw).to.be.eq(true);
 		});
@@ -90,20 +92,20 @@ describe( "Given an instance of the system without nodes", function() {
 		describe( "And all space is consumed via a stream", function(){
 			beforeEach(async function consumeSpace() {
 				const stream = this.metadata.stream_to( "large", "blob" );
-				stream.write(Buffer.alloc(1024*1024));
-				stream.end();
-				await promiseEvent( stream, 'close')
+				const closingStream = promiseEvent(stream, "close");
+				stream.end(Buffer.alloc(1024*1024));
+				await closingStream;
 			});
 
 			it( "is out of space" , async function() {
-				let threw = true;
+				let threw;
 				try {
 					await this.metadata.store_value("south", "east", "highway");
 					threw = false;
 				}catch(e){
-					//Passed
+					threw = true;
 				}
-				expect(threw).to.be.true;
+				expect(threw).to.be.eq(true);
 			})
 		});
 	});
