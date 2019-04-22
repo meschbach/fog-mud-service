@@ -64,7 +64,7 @@ describe( "Given an instance of the system without nodes", function() {
 		this.controlPlane = controlPlane;
 	});
 	afterEach(async function(){
-		await delay(5); //TODO: Figure out the sync issue (min: 5ms) [ECONNRESET from service socket]
+		await delay(10); //TODO: Figure out the sync issue (min: 10ms) [ECONNRESET from service socket]
 		await this.context.cleanup()
 	});
 
