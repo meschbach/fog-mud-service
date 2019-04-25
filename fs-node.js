@@ -1,12 +1,8 @@
-const express = require('express');
-const {make_async} = require('junk-bucket/express');
-const Future = require('junk-bucket/future');
-const {promiseEvent} = require("junk-bucket/future");
 const assert = require('assert');
 
 const storageAPI = require("./node/http-v1");
 const {Context} = require("junk-bucket/context");
-const {logMorganTo, express_server, JailedVFS, LocalFileSystem} = require("./junk");
+const {express_server, JailedVFS, LocalFileSystem} = require("./junk");
 
 function http_v1(logger, system, config) {
 	const rootContext = new Context("fs-node", logger);
