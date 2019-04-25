@@ -2,6 +2,7 @@ const {expect} = require("chai");
 const {createTestLogger} = require("../system/test-junk");
 
 const {Context} = require("junk-bucket/context");
+const {delay} = require("junk-bucket/future");
 const {MemoryWritable, promisePiped} = require("junk-bucket/streams");
 const {InMemoryVFS} = require("junk-bucket/vfs");
 
@@ -12,7 +13,6 @@ const {http_v1, NodeHTTPV1} = require("../../node/http-v1");
  */
 const {listen} = require("../test-junk");
 
-const {EchoOnReceive} = require("junk-bucket/streams");
 async function streamAsBuffer( source ){
 	const target = new MemoryWritable();
 	await promisePiped(source, target);
