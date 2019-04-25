@@ -6,7 +6,7 @@ const path = require("path");
 
 const {http_v1} = require("./metadata");
 const {MudHTTPClient} = require("./client");
-const {fsNodeStorage} = require("./fs-node");
+const {localFSStorage} = require("./node/fs-storage");
 const {CoordinatorHTTPClient} = require("./metadata/coordinator");
 
 const {Context} = require("junk-bucket/context");
@@ -41,7 +41,7 @@ async function inPorcessService( logger ){
 
 	// Create a new block storage node
 	const fs = await makeSubdirectory(root, "fs-storage");
-	const blockStorage = fsNodeStorage(logger.child({app: 'fs-storage'}), null, { client: "http://127.0.0.1:" + await metaData.port, storage: fs, name: 'primary' });
+	const blockStorage = localFSStorage(logger.child({app: 'fs-storage'}), null, { client: "http://127.0.0.1:" + await metaData.port, storage: fs, name: 'primary' });
 
 	//create the client
 	const metadataAddress = await metaData.address;

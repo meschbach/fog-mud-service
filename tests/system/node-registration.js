@@ -1,6 +1,5 @@
 const {createTestLogger} = require("./test-junk");
 const {Context} = require("junk-bucket/context");
-const {endStream} = require("../../junk");
 const {newTemporaryLevelDB} = require("../../junk/leveldb");
 const {LevelUpEventStore} = require("../../junk/event-store-level");
 const {EventMetadataStore, NodesEventStore} = require('../../metadata/data-store');
@@ -40,11 +39,11 @@ async function newMetadataNode( parentContext ){
 }
 
 const {contextTemporaryDirectory} = require("junk-bucket/fs");
-const {fsNodeStorage} = require("../../fs-node");
+const {localFSStorage} = require("../../node/fs-storage");
 async function newFileSystemStorage( parentContext ){
 	const context = parentContext.subcontext("metadata");
 	const dir = await contextTemporaryDirectory(context, "fs-node");
-	context.blockStorage = await fsNodeStorage(context.logger.child({app: 'fs-storage'}), null, { storage: dir });
+	context.blockStorage = await localFSStorage(context.logger.child({app: 'fs-storage'}), null, { storage: dir });
 	context.onCleanup(() => {
 		context.blockStorage.end();
 	});

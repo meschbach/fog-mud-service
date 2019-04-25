@@ -18,7 +18,7 @@ const levelup = require("levelup");
 const leveldown = require("leveldown");
 const {MudHTTPClient} = require("./client");
 
-const {fsNodeStorage} = require("./fs-node");
+const {localFSStorage} = require("./node/fs-storage");
 const {CoordinatorHTTPClient} = require("./metadata/coordinator");
 
 const fs = require("fs");
@@ -57,7 +57,7 @@ async function omniService( args ) {
 		storage: fsBlockStorageLocation,
 		name: 'primary'
 	};
-	const blockStorage = fsNodeStorage(log.child({app: 'fs-storage'}), null, fsConfig);
+	const blockStorage = localFSStorage(log.child({app: 'fs-storage'}), null, fsConfig);
 
 	//create the client
 	const metadataAddress = await metaData.address;
