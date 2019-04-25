@@ -8,6 +8,7 @@
  * Cryptography related
  **********************************************************************************************************************/
 const crypto = require('crypto');
+//TODO: Moved into junk-bucket@1.3.0
 function sha256_from_string( str ){
 	const hash = crypto.createHash('sha256');
 	hash.update(str);
@@ -140,6 +141,7 @@ function streamRequestEntity( opts, interpretResponse ) {
  **********************************************************/
 const path = require("path");
 
+//TODO: Moved into junk-bucket@1.3.0
 function jailedPath( root, relative ){
 	const relativeNormalized = path.normalize(relative);
 	const resolvedPath = path.resolve(root, relativeNormalized);
@@ -152,6 +154,7 @@ function jailedPath( root, relative ){
 /**********************************************************
  *
  **********************************************************/
+//TODO: Moved into junk-bucket@1.3.0
 class JailedVFS {
 	constructor(root, vfs) {
 		this.root = root;
@@ -189,6 +192,7 @@ class JailedVFS {
 	}
 }
 
+//TODO: Moved into junk-bucket@1.3.0
 const fs = require("fs");
 const {
 	exists,
