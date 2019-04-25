@@ -68,6 +68,7 @@ describe("node http_v1 routes", function () {
 			const example = Buffer.from("I spend too much time in coffee shops");
 			const sink = await client.createWritableStream(name);
 			await endStream(sink, example);
+			delay(50); //TODO: Find way to sync before reading.  Perhaps the client should implement strict consistency control
 
 			const source = await client.createReadableStream(name);
 			const result = await streamAsBuffer(source);
