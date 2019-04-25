@@ -2,8 +2,6 @@ const {expect} = require("chai");
 const {createTestLogger} = require("../system/test-junk");
 
 const {Context} = require("junk-bucket/context");
-const Future = require("junk-bucket/future");
-const {promiseEvent} = require("junk-bucket/future");
 const {MemoryWritable, promisePiped} = require("junk-bucket/streams");
 const {InMemoryVFS} = require("junk-bucket/vfs");
 
