@@ -6,35 +6,33 @@ const assert = require('assert');
 
 const storageAPI = require("./node/http-v1");
 const {Context} = require("junk-bucket/context");
-const {logMorganTo, JailedVFS, LocalFileSystem} = require("./junk");
+const {logMorganTo, express_server, JailedVFS, LocalFileSystem} = require("./junk");
 
 function http_v1(logger, system, config) {
+	const rootContext = new Context("fs-node", logger);
+
 	assert(config.storage, "Storage not defined.");
 	const localFS = new LocalFileSystem();
 	const jailRoot = config.storage;
 	const jailedFS = new JailedVFS(jailRoot, localFS);
+	const storageAPI_v1 = storageAPI.http_v1(rootContext, jailedFS);
 
-	const rootContext = new Context("fs-node", logger);
 
-	const app = make_async(express());
-	app.use(logMorganTo(logger));
-	app.use(storageAPI.http_v1(rootContext, jailedFS));
-
-	const addressFuture = new Future();
-	const server = app.listen( config.port, '127.0.0.1', () => {
-		logger.info("HTTP listener bound on ", server.address());
-		addressFuture.accept(server.address());
+	const address = express_server(rootContext, storageAPI_v1, config.port, "127.0.0.1");
+	const oldAddress = address.then((a) => {
+		const parts = a.split(":")
+		return {
+			address: parts[0],
+			port: parseInt(parts[1])
+		}
 	});
-	const closedSocketPromise = promiseEvent(server,"close");
-	closedSocketPromise.then(() => {}, () => {}); //TODO: Prevent leaking promise complaints, better way to do this?
 
 	return {
-		address: addressFuture.promised,
-		end: async function () {
-			server.close();
-			await closedSocketPromise;
+		address: oldAddress,
+		end: async function(){
+			await rootContext.cleanup();
 		}
-	}
+	};
 }
 
 const { CoordinatorHTTPClient } = require("./metadata/coordinator");

@@ -68,6 +68,38 @@ function logMorganTo(logger){
 	})
 }
 
+const express = require("express");
+const {make_async} = require("junk-bucket/express");
+
+//TODO: Move to junk-bucket
+async function express_server( context, router, port, iface ) {
+	const app = make_async(express());
+	app.use(logMorganTo(context.logger));
+	app.use("/", router);
+
+	const address = await listen(context, app, port, iface);
+	return address;
+}
+
+/**********************************************************
+ * Sockets
+ **********************************************************/
+const {addressOnListen} = require('junk-bucket/sockets');
+//TOOD: junk-bucket@1.3.0 (TOOD: migrate improvements)
+async function listen(context, server, port, bindToAddress){
+	const result = addressOnListen(server, port, bindToAddress);
+	const onClose = promiseEvent(result.socket);
+	context.onCleanup(async () => {
+		context.logger.trace("Cleaning up server",{address});
+		result.stop();
+		await onClose;
+	});
+	const address = await result.address;
+	context.logger.trace("Server bound to",{address});
+	return address.host + ":" + address.port;
+}
+
+
 /**********************************************************
  * Streams
  **********************************************************/
@@ -229,6 +261,7 @@ class LocalFileSystem {
 	}
 }
 
+
 /***********************************************************************************************************************
  * Exports
  **********************************************************************************************************************/
@@ -248,5 +281,8 @@ module.exports = {
 
 	jailedPath,
 	JailedVFS,
-	LocalFileSystem
+	LocalFileSystem,
+
+	//express
+	express_server
 };
