@@ -3,6 +3,7 @@
  *
  * Some of these are likely to find a home in junk-bucket.
  **********************************************************************************************************************/
+const {MemoryWritable} = require("junk-bucket/streams");
 
 /***********************************************************************************************************************
  * Cryptography related
@@ -14,6 +15,15 @@ function sha256_from_string( str ){
 	hash.update(str);
 	return hash.digest("hex");
 }
+
+const {promisePiped} = require("junk-bucket/streams");
+async function sha256FromStream( stream ) {
+	const hashSink = new MemoryWritable();
+	const hash = crypto.createHash('sha256');
+	await promisePiped(stream.pipe(hash), hashSink);
+	return hashSink.bytes.toString("hex");
+}
+
 
 /***********************************************************************************************************************
  * File System Promise adapters
@@ -136,7 +146,6 @@ async function endStream( stream, lastChunk ){
 const Future = require("junk-bucket/future");
 const request = require("request");
 const http = require("http");
-const {MemoryWritable} = require("junk-bucket/streams");
 
 /**
  * Blocks a request entity from being considered complete until response headers have been received and interpreted.
@@ -267,6 +276,7 @@ class LocalFileSystem {
  **********************************************************************************************************************/
 module.exports = {
 	sha256_from_string,
+	sha256FromStream,
 
 	fs_mkdir: mkdir,
 	fs_mkdtemp: mkdtemp,

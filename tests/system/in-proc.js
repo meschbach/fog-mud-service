@@ -2,6 +2,7 @@ const {inPorcessService} = require("../../in-proc");
 const assert = require("assert");
 const {parallel} = require("junk-bucket/future");
 const {promisePiped, MemoryWritable} = require("junk-bucket/streams");
+const {sha256FromStream} = require("../../junk");
 
 const fs = require('fs');
 
@@ -11,15 +12,6 @@ const fs = require('fs');
 const {expect} = require('chai');
 const {createTestLogger} = require("./test-junk");
 
-const crypto = require('crypto');
-async function digestStream( stream ) {
-	const hashSink = new MemoryWritable();
-	const hash = crypto.createHash('sha256');
-	await promisePiped(stream.pipe(hash), hashSink);
-	return hashSink.bytes.toString("hex");
-}
-
-const Future = require('junk-bucket/future');
 const {promiseEvent} = require('junk-bucket/future');
 
 describe( "In process harness", function() {
@@ -55,7 +47,7 @@ describe( "In process harness", function() {
 			const container = "some-container";
 			const key = "streaming-data";
 			const sourceFile = __dirname +"/" + "test.png";
-			const sourceHash = await digestStream( fs.createReadStream( sourceFile ) );
+			const sourceHash = await sha256FromStream( fs.createReadStream( sourceFile ) );
 
 			const client = handler.client;
 			const streamingOut = client.stream_to( container, key );
@@ -67,7 +59,7 @@ describe( "In process harness", function() {
 
 			logger.info("Retrieving stream");
 			const streamIn = client.stream_from( container, key );
-			const storedHash = await digestStream(streamIn);
+			const storedHash = await sha256FromStream(streamIn);
 			logger.info("Stream digesting completed", {storedHash});
 			expect(storedHash).to.deep.eq(sourceHash);
 		}finally{
