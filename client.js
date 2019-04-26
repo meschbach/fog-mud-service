@@ -2,6 +2,7 @@
 const assert = require("assert");
 const request = require('request-promise-native');
 const requestBase = require('request');
+const {streamRequestEntity} = require('./junk');
 
 class MudHTTPClient {
 	constructor( serviceURL, logger ){
@@ -40,8 +41,17 @@ class MudHTTPClient {
 
 	stream_to( container, key ){
 		const url = this.base + "/container/" + container + "/object-stream/" + key;
+		const opts = {
+			method: "POST",
+			url
+		};
 		this.logger.trace("Streaming to ", {container, key, url});
-		return requestBase.post( url );
+		return streamRequestEntity(opts, async (response) =>{
+			this.logger.trace("Completed sending stream", {container, key, statusCode: response.statusCode});
+			if( response.statusCode != 204 ){
+				throw new Error("Unexpected response status code " + response.statusCode);
+			}
+		});
 	}
 
 	async get_value( container, key) {
@@ -64,7 +74,14 @@ class MudHTTPClient {
 	stream_from( container, key ){
 		const url = this.base + "/container/" + container + "/object-stream/" + key ;
 		this.logger.trace("Streaming from", {container, key, url});
-		return requestBase.get({url: url, headers: this.baseHeaders } );
+		const req = requestBase.get({url: url, headers: this.baseHeaders } );
+		req.on("response", () => {
+			this.logger.trace("Starting response for stream", {container, key});
+		});
+		req.on("close", () => {
+			this.logger.trace("Closed", {container, key});
+		});
+		return req;
 	}
 
 	async list( container, prefix ){

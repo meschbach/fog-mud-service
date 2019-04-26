@@ -1,7 +1,7 @@
 const {inPorcessService} = require("../../in-proc");
 const assert = require("assert");
 const {parallel} = require("junk-bucket/future");
-const {promisePiped} = require("junk-bucket/streams");
+const {promisePiped, MemoryWritable} = require("junk-bucket/streams");
 
 const fs = require('fs');
 
@@ -12,10 +12,11 @@ const {expect} = require('chai');
 const {createTestLogger} = require("./test-junk");
 
 const crypto = require('crypto');
-function digestStream( stream ) {
+async function digestStream( stream ) {
+	const hashSink = new MemoryWritable();
 	const hash = crypto.createHash('sha256');
-	stream.pipe(hash);
-	return hash.digest('hex');
+	await promisePiped(stream.pipe(hash), hashSink);
+	return hashSink.bytes.toString("hex");
 }
 
 const Future = require('junk-bucket/future');
@@ -48,24 +49,27 @@ describe( "In process harness", function() {
 	});
 
 	it("can stream objects", async function() {
-		const logger = createTestLogger("stream-objects", false);
+		const logger = createTestLogger("stream-objects", true);
 		const handler = await inPorcessService( logger );
 		try {
 			const container = "some-container";
 			const key = "streaming-data";
 			const sourceFile = __dirname +"/" + "test.png";
-			const sourceHash = digestStream( fs.createReadStream( sourceFile ) );
+			const sourceHash = await digestStream( fs.createReadStream( sourceFile ) );
 
 			const client = handler.client;
 			const streamingOut = client.stream_to( container, key );
 			const source = fs.createReadStream( sourceFile );
+			logger.info("Sending test stream");
+			const doneSending = promiseEvent(streamingOut, "close");
 			await promisePiped(source,streamingOut);
+			await doneSending;
 
+			logger.info("Retrieving stream");
 			const streamIn = client.stream_from( container, key );
-			const streamDone = promiseEvent(streamIn, "end");
-			const storedHash = digestStream(streamIn);
-			await streamDone;
-			assert.equal( storedHash, sourceHash );
+			const storedHash = await digestStream(streamIn);
+			logger.info("Stream digesting completed", {storedHash});
+			expect(storedHash).to.deep.eq(sourceHash);
 		}finally{
 			handler.stop();
 		}
@@ -92,7 +96,7 @@ describe( "In process harness", function() {
 
 			await parallel( streamedValues.map( async (value) => {
 				const stream = await client.stream_to(container, keyPrefix + value );
-				const promise = promiseEvent(stream, 'end' );
+				const promise = promiseEvent(stream, 'close' );
 				stream.end( value );
 				await promise;
 			}));
