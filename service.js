@@ -2,6 +2,7 @@
 const {LevelUpEventStore} = require("./junk/event-store-level");
 const {openLevelDB} = require("./junk/leveldb");
 const {EventMetadataStore, NodesEventStore} = require("./metadata/data-store");
+const {newMetadataService} = require("./in-proc");
 
 const {main} = require('junk-bucket');
 const {Context} = require("junk-bucket/context");
@@ -15,20 +16,16 @@ main( async (logger) => {
 		.option("level-storage", {default: "coordinator.level"})
 		.argv;
 
-	//Setup the root context
-	const root = new Context("process", logger.child({component: "metadata"}));
-
-	const levelDBStorage =  options["level-storage"];
-	const leveldb = await openLevelDB(root, levelDBStorage);
-	const underlyingStore = new LevelUpEventStore(leveldb);
-	const metadataStroge = new EventMetadataStore( underlyingStore, logger );
-	const nodesStorage = new NodesEventStore(underlyingStore);
-	const coordinator = {
-		storage: metadataStroge,
-		nodesStorage
-	};
-
-	// Configure the HTTP layer
+	// Extract values from the options
+	const levelStorage = options["level-storage"];
 	const port = options.port;
-	http_v1(logger.child({proto: 'http/v1', port}), coordinator, {port});
+
+	// Setup the root context
+	const root = new Context("driver", logger.child({component: "driver"}));
+
+	// Start the service
+	const service = await newMetadataService(root, {
+		metadataDir: levelStorage,
+		port
+	});
 }, formattedConsoleLog("metadata"));
