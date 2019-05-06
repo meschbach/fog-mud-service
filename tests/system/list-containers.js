@@ -13,7 +13,9 @@ describe( "Given a valid system", function () {
 		this.harness = await inPorcessService( logger );
 	});
 	afterEach(async function(){
-		await this.harness.stop();
+		if( this.harness ){
+			await this.harness.stop();
+		}
 	});
 
 	describe( "with no containers", function () {
