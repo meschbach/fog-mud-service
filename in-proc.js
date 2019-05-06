@@ -2,8 +2,6 @@
  * An in-process version of the system.  Intended to provide a reasonable level of service for the system suitable for
  * testing components.  These tests aren't concerned with the security layer and will not configure them.
  */
-const path = require("path");
-
 const {http_v1} = require("./metadata");
 const {MudHTTPClient} = require("./client");
 const {localFSStorage} = require("./node/fs-storage");
@@ -15,13 +13,7 @@ const {openLevelDB} = require("./junk/leveldb");
 const {LevelUpEventStore} = require("./junk/event-store-level");
 const {EventMetadataStore, NodesEventStore} = require('./metadata/data-store');
 
-const {mkdir} = require('junk-bucket/fs');
-
-async function makeSubdirectory( base, sub ){
-	const fullPath = path.join(base,sub);
-	await mkdir(fullPath);
-	return fullPath;
-}
+const {makeSubdirectory} = require("./junk");
 
 async function inPorcessService( logger ){
 	const context = new Context("In-process Mud system", logger);

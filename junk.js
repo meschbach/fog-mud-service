@@ -191,6 +191,11 @@ function jailedPath( root, relative ){
 	return [root].concat(actualParts).join(path.sep);
 }
 
+async function makeSubdirectory( base, sub ){
+	const fullPath = path.join(base,sub);
+	await mkdir(fullPath);
+	return fullPath;
+}
 
 /**********************************************************
  *
@@ -293,9 +298,9 @@ module.exports = {
 	JailedVFS,
 	LocalFileSystem,
 
-	//express
-	express_server,
+	//fs
+	makeSubdirectory,
 
-	//performance
-	LogPerformance
+	//express
+	express_server
 };
