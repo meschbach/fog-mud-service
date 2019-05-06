@@ -26,18 +26,11 @@ async function makeSubdirectory( base, sub ){
 async function inPorcessService( logger ){
 	const context = new Context("In-process Mud system", logger);
 	const root = await contextTemporaryDirectory(context, "mud-");
-	const metadataDir = await makeSubdirectory(root, "metadata");
-	const metadataLevelDB = await openLevelDB( context, metadataDir );
-	const metadataLevelEventStore = new LevelUpEventStore(metadataLevelDB);
-	const metadataStorage = new EventMetadataStore(metadataLevelEventStore, logger.child({service:"metadata", component: "event storage"}));
-	const nodesStorage = new NodesEventStore(metadataLevelEventStore);
 
 	// Create Metadata service
-	const coordinator = {
-		storage: metadataStorage,
-		nodesStorage
-	};
-	const metaData = await http_v1(logger.child({app: 'metadata', port: 0}), coordinator, {port: 0});
+	const metadataDir = await makeSubdirectory(root, "metadata");
+	const metaDataContext = context.subcontext("metadata");
+	const metaData = await newMetadataService(metaDataContext, {metadataDir});
 
 	// Create a new block storage node
 	const fs = await makeSubdirectory(root, "fs-storage");
@@ -62,6 +55,27 @@ async function inPorcessService( logger ){
 			await context.cleanup();
 		}
 	}
+}
+
+
+/***********************************************************************************************************************
+ * Metadata service
+ **********************************************************************************************************************/
+async function newMetadataService( context, config ){
+	const metadataDir = config.metadataDir;
+
+	context.logger.trace("Using LevelDB storage directory", metadataDir);
+	const metadataLevelDB = await openLevelDB( context, metadataDir );
+	const metadataLevelEventStore = new LevelUpEventStore(metadataLevelDB);
+	const metadataStorage = new EventMetadataStore(metadataLevelEventStore, context.logger.child({service:"metadata", component: "event storage"}));
+	const nodesStorage = new NodesEventStore(metadataLevelEventStore);
+
+	const coordinator = {
+		storage: metadataStorage,
+		nodesStorage
+	};
+	const metaData = await http_v1(context.logger.child({app: 'metadata', port: 0}), coordinator, {port: 0});
+	return metaData;
 }
 
 module.exports = {

@@ -294,5 +294,8 @@ module.exports = {
 	LocalFileSystem,
 
 	//express
-	express_server
+	express_server,
+
+	//performance
+	LogPerformance
 };
