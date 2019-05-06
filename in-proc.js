@@ -54,22 +54,34 @@ async function inPorcessService( logger ){
  * Metadata service
  **********************************************************************************************************************/
 async function newMetadataService( context, config ){
+	// Extract configuration
 	const metadataDir = config.metadataDir;
+	const http_v1_port = config.http_v1;
 
+	// Open the persistance layer
 	context.logger.trace("Using LevelDB storage directory", metadataDir);
 	const metadataLevelDB = await openLevelDB( context, metadataDir );
 	const metadataLevelEventStore = new LevelUpEventStore(metadataLevelDB);
-	const metadataStorage = new EventMetadataStore(metadataLevelEventStore, context.logger.child({service:"metadata", component: "event storage"}));
+
+	// Setup the storage event controllers
+	const eventsContext = context.subcontext("event storage");
+	const metadataStorage = new EventMetadataStore(metadataLevelEventStore, eventsContext.logger);
+
+	// Setup the node controllers
 	const nodesStorage = new NodesEventStore(metadataLevelEventStore);
 
+	// Expose the API service
+	const serviceContext = context.subcontext("http_v1");
 	const coordinator = {
 		storage: metadataStorage,
 		nodesStorage
 	};
-	const metaData = await http_v1(context.logger.child({app: 'metadata', port: 0}), coordinator, {port: 0});
+	serviceContext.logger.info("Asking to bind to port", {http_v1_port});
+	const metaData = await http_v1(serviceContext.logger, coordinator, {port: http_v1_port});
 	return metaData;
 }
 
 module.exports = {
-	inPorcessService
+	inPorcessService,
+	newMetadataService
 };
