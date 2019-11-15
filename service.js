@@ -26,6 +26,6 @@ main( async (logger) => {
 	// Start the service
 	const service = await newMetadataService(root, {
 		metadataDir: levelStorage,
-		port
+		http_v1: port
 	});
 }, formattedConsoleLog("metadata"));
