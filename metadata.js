@@ -9,6 +9,7 @@ const morgan = require('morgan');
 const {make_async} = require('junk-bucket/express');
 const Future = require('junk-bucket/future');
 const {promisePiped} = require('junk-bucket/streams');
+const expressOpenTracing = require("express-opentracing");
 
 const bodyParser = require('body-parser');
 
@@ -59,6 +60,7 @@ async function http_v1( log, coordinator, config ) { //TODO: The client and syst
 	const app = make_async(express());
 	const httpLogger = log.child({component:"http"});
 	app.use(logMorganTo(httpLogger));
+	app.use(expressOpenTracing.default({tracer: config.tracer}));
 	app.use(bodyParser.json());
 
 	app.a_get("/container/:container", async (req, resp) => {

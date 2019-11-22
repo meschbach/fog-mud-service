@@ -8,6 +8,7 @@ const {main} = require('junk-bucket');
 const {Context} = require("junk-bucket/context");
 const {http_v1} = require('./metadata');
 const {formattedConsoleLog} = require("junk-bucket/logging-bunyan");
+const {attachTracing} = require("./tracing");
 
 main( async (logger) => {
 	const options = require("yargs")
@@ -22,6 +23,7 @@ main( async (logger) => {
 
 	// Setup the root context
 	const root = new Context("driver", logger.child({component: "driver"}));
+	attachTracing(root, "fog-mud/metadata");
 
 	// Start the service
 	const service = await newMetadataService(root, {

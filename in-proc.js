@@ -77,7 +77,7 @@ async function newMetadataService( context, config ){
 		nodesStorage
 	};
 	serviceContext.logger.info("Asking to bind to port", {http_v1_port});
-	const metaData = await http_v1(serviceContext.logger, coordinator, {port: http_v1_port});
+	const metaData = await http_v1(serviceContext.logger, coordinator, {port: http_v1_port, tracer: config.tracer });
 	return metaData;
 }
 
