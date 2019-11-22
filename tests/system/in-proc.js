@@ -41,7 +41,7 @@ describe( "In process harness", function() {
 	});
 
 	it("can stream objects", async function() {
-		const logger = createTestLogger("stream-objects", true);
+		const logger = createTestLogger("stream-objects", false);
 		const handler = await inPorcessService( logger );
 		try {
 			const container = "some-container";
